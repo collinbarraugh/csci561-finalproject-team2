@@ -8,5 +8,5 @@ This is a shared project space for the Statistical Learning II (CSCI561) course 
 # Collaboration Links
 
  - Overleaf: https://www.overleaf.com/project/6193187f3459e8cf3a6ec0e5
- - Slack:
+ - Slack: https://app.slack.com/client/T02MPEX9L3G/C02MW6HS38A
  - GitHub: if you are reading this you are already here
