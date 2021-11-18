@@ -4,6 +4,7 @@ This is a shared project space for the Statistical Learning II (CSCI561) course 
 # Authors
 
  - Collin Barraugh (email: cbarraugh@mines.edu, mobile: 8582134014)
+ - Margaret Sabelhaus (email: msabelhaus@mines.edu, mobile: 3015252903)
 
 # Collaboration Links
 
