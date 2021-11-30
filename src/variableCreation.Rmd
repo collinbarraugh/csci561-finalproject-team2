@@ -16,20 +16,25 @@ library(dplyr)
 #library(MASS)
 #library(class)
 library(e1071) 
+library(keras)
+library(tensorflow)
+
+#Use this in command line if tensorflow.keras not found error
+#use_condaenv("r-tensorflow")
 ```
 
 Reading in data:
 
 ```{r}
 # Set working directory as needed
-setwd("~/Documents/fall2021/DSCI561/finalProject")
+#setwd("~/Documents/fall2021/DSCI561/finalProject")
 
-load("./High/high_train.RData")
-load("./Med/med_train.RData")
-load("./Low/low_train.RData")
-load("./High/high_validate.RData")
-load("./Med/med_validate.RData")
-load("./Low/low_validate.RData")
+load("./data/High/high_train.RData")
+load("./data/Medium/med_train.RData")
+load("./data/Low/low_train.RData")
+load("./data/High/high_validate.RData")
+load("./data/Medium/med_validate.RData")
+load("./data/Low/low_validate.RData")
 ```
 
 Try plotting:
@@ -178,5 +183,77 @@ standardized.df$validate = df$validate
 
 We can play around with which features, if any, we want to scale. All you need to do is exclude those you don't want scaled in line 174, then add them to the standardized.df as per lines 175 and 176.
 
+# Applying convolutions
+
+Convolutions and max pooling in R: https://rpubs.com/eR_ic/conv_pools.
+
+Here are a few things we need to know first about the images we are dealing with:
+
+  - All images have dimensions 288 x 192
+  - All images  have 1 depth of 1 (binary).
+  - We visualize this 1 dimensional range of values on a red-blue color scale.
+  - The range of values for each image differs by the type of data
+  - Number of images per dataset are as follows:
+    - low_train: 110
+    - med_train: 240
+    - high_train: 360
+    - low_validate: 40
+    - med_validate: 90
+    - high_validate: 140
+  - Therefore there are a total of 980 images (270 validation + 710 training)
+
+In order to perform convolutions we will need to. . .
+
+  1. Reshape the data into single arrays for training, testing, and validation.
+
+  2. Normalize the pixel values in each image by
+   - Adjusting the range to have a 0 minimum
+   - Divide by maximum value in each image
+
+  3. Two paths: (https://stackoverflow.com/questions/43485361/whats-the-difference-between-conv-layer-and-pooling-layer-in-cnn/43491146)
+   - Pooling
+   - Convolution + Pooling
+
+
+```{r}
+#Get dataset lengths
+lt = length(low_train$mat)
+mt = length(med_train$mat)
+ht = length(high_train$mat)
+lv = length(low_validate$mat)
+mv = length(med_validate$mat)
+hv = length(high_validate$mat)
+
+#Get pixel values
+training_images = c(low_train$mat, med_train$mat, high_train$mat)
+validation_images = c(low_validate$mat, med_validate$mat, high_validate$mat)
+
+#Reshape data into single array
+training_images_rs = array_reshape(training_images, c(lt+mt+ht, 288, 192, 1))
+validation_images_rs = array_reshape(validation_images, c(lv+mv+hv, 288, 192, 1))
+```
+
+  2. Normalize the data using the max value in each of the images.
+
+  ```{r}
+  #Normalize the data (divide by the largest pixel value in each image).
+  ```
+
+  3. Instantiate the convolution.
+  
+```{r}
+#Instantiate the convolution
+model <- keras_model_sequential()
+  # adding the first convolution layer with 64 3by3 filter
+  # we add a color depth of 1 since convolutions operate over 3D tensors
+  layer_conv_2d(input_shape = c(288, 192, 1), filters = 6, kernel_size = c(3,3), activation = 'relu')
+  # adding a max pooling layer which halves the dimensions
+  layer_max_pooling_2d(pool_size = c(2,2))
+  # adding a second convolution layer which filters the results
+  # from the previous layer
+  layer_conv_2d(filters = 16, kernel_size = c(3,3), activation = 'relu') # adding a pooling layer
+  layer_max_pooling_2d(pool_size = c(2,2))
+
+```
 
 
