@@ -1,0 +1,198 @@
+---
+title: "561Project"
+author: "Jose Molina-Galeano"
+date: "November 29, 2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#library(Matrix)
+library(dplyr)
+#library(resample)
+#library(ISLR)
+#library(tree)
+#library(gbm)
+#library(MASS)
+#library(class)
+library(e1071) 
+library(image.ContourDetector)
+library(pixmap)
+library(magick)
+```
+
+Reading in data:
+
+```{r}
+# Set working directory as needed
+setwd("C:\\Users\\Kjagi\\OneDrive - Colorado School of Mines\\Fall2021\\MATH561\\Final_Project")
+load("./High/high_train.RData")
+load("./Medium/med_train.RData")
+load("./Low/low_train.RData")
+load("./High/high_validate.RData")
+load("./Medium/med_validate.RData")
+load("./Low/low_validate.RData")
+```
+
+Try plotting:
+
+```{r}
+# Select data and axis labels
+n=100
+selected_dataset = med_train # copy of high_train list of datasets
+l = length(selected_dataset$mat) # number of datasets in high_train
+latitudes = round(as.numeric(colnames(selected_dataset$mat[[n]])))
+longitudes = as.numeric(rownames(selected_dataset$mat[[n]]))
+dataset = selected_dataset$mat[[n]] 
+varname = selected_dataset$var[n]
+# Plot
+image(dataset, main=varname, col = hcl.colors(100, "Blue-Red"),
+      axes=FALSE, xlab="Longitude", ylab="Latitude")
+axis(3, at=seq(0,1, length=7), labels=longitudes[seq(1, 288, length.out=7)],
+     lwd=0, pos=-0.2, outer=T)
+axis(2, at=seq(1,0, length=9), labels=latitudes[seq(1, 192, length.out=9)],
+     lwd=0, pos=0)
+```
+
+Let's use Dr. Hammerling's code to initialize our dataframe of [datasets, features]:
+
+```{r}
+df = data.frame()
+ds_list = list(high_train, med_train, low_train, high_validate, med_validate, low_validate)
+classifications = c("high", "med", "low")
+class_index = rep(c(1, 2, 3), 2)
+for (i in 1:length(ds_list)){
+  l = length(ds_list[[i]]$mat)
+  sum_feature = rep(NA, l)
+  for(j in 1:l){
+    sum_feature[j] = sum(ds_list[[i]]$mat[[j]])
+  }
+  classification = classifications[class_index[i]]
+  
+  # -- Margaret adding in; this is dummy for whether or not the 
+  # dataset is in our validation set.
+  test = ifelse(i %in% c(4,5,6),1,0)
+  
+  df = rbind(df, data.frame("sum"=sum_feature, "classification"=rep(classification, l), "validate"=rep(test,l)))
+}
+df$classification = as.factor(df$classification)
+# Append a new feature, this one is the number of zeroes in each dataset, a measure of the sparsity of the dataset.
+ds_list = list(high_train, med_train, low_train, high_validate, med_validate, low_validate)
+z = c()
+for (i in 1:length(ds_list)){
+  l = length(ds_list[[i]]$mat)
+  zero_feature = rep(NA, l)
+  for(j in 1:l){
+    zero_feature[j] = sum(ds_list[[i]]$mat[[j]] == 0)
+  }
+  z = c(z, zero_feature)
+}
+df = cbind(df, data.frame("zeroes"=z))
+```
+
+# Creating Summary Statistic Features
+
+I'm going to loop through the datasets to create a bunch of new features. I'm sure there's a faster way to do this, but let's keep it simple for now 
+
+```{r}
+# Initialize empty vectors to populate with values for each dataset
+norm = c()
+min = c()
+max = c()
+q3 = c()
+q1 = c()
+iqr = c()
+mean = c()
+med = c()
+std = c()
+range = c()
+skew = c()
+kurtosis = c()
+aboveMean = c()
+contourCount = c()
+contourLength = c()
+# Loop through datasets and populate vectors
+for (i in 1:length(ds_list)){
+  numMats = length(ds_list[[i]]$mat)
+  
+  for (j in 1:numMats){
+  
+    mat = ds_list[[i]]$mat[[j]]
+    varname = ds_list[[i]]$var[[j]]
+    file_name = gsub(" ","",paste(varname,'.png'))
+    png(file_name)
+    image(mat, col = hcl.colors(1000, "Blue-Red"),axes=FALSE)
+    dev.off()
+    
+    # Norm
+    norm = c(norm, norm(mat))
+    
+    # Min/Max
+    min = c(min, min(mat))
+    max = c(max, max(mat))
+    
+    # Quantiles, IQR
+    q1 = c(q1, quantile(mat, .25))
+    q3 = c(q3, quantile(mat, .75))
+    iqr = c(iqr, quantile(mat, .25) - quantile(mat, .75))
+    
+    # Measures of center
+    med = c(med, median(mat))
+    mean = c(mean, mean(mat))
+    
+    # Measures of spread
+    std = c(std, sd(mat))
+    range = c(range, max(mat) - min(mat))
+    
+    # Skewness and Kurtosis
+    skew = c(skew, skewness(mat))
+    kurtosis = c(kurtosis, kurtosis(mat))
+    
+    # How many elements > mean
+    aboveMean = c(aboveMean, length(which(mat > mean(mat))))
+    
+    # Features for Contours
+    x <- image_read(file_name)
+    mat1 <- image_data(x, channels = "gray")
+    mat1 <- as.integer(mat1, transpose = TRUE)
+    mat1 <- drop(mat1)
+    contourlines <- image_contour_detector(mat1, Q=0)
+    contourCount = c(contourCount, contourlines$curves)
+    contourLength = c(contourLength, contourlines$contourpoints)
+  }
+}
+```
+
+```{r}
+# Attaching all of our newly-created features...
+df = cbind(df, data.frame("norm"=norm))
+df = cbind(df, data.frame("min"=min))
+df = cbind(df, data.frame("max"=max))
+df = cbind(df, data.frame("q1"=q1))
+df = cbind(df, data.frame("q3"=q3))
+df = cbind(df, data.frame("iqr"=iqr))
+df = cbind(df, data.frame("mean"=mean))
+df = cbind(df, data.frame("med"=med))
+df = cbind(df, data.frame("std"=std))
+df = cbind(df, data.frame("range"=range))
+df = cbind(df, data.frame("skew"=skew))
+df = cbind(df, data.frame("kurtosis"=kurtosis))
+df = cbind(df, data.frame("contourCount"=contourCount))
+df = cbind(df, data.frame("contourLength"=contourLength))
+```
+
+'df' is our (current) finalized dataframe with all our new features.
+
+Now we standardize our features:
+
+```{r}
+# Don't scale the target or dummy for whether it's in train/test set
+standardized.df = data.frame(scale(df[,-c(2,3)]))
+standardized.df$classification = df$classification
+standardized.df$validate = df$validate
+```
+
+We can play around with which features, if any, we want to scale. All you need to do is exclude those you don't want scaled in line 174, then add them to the standardized.df as per lines 175 and 176.
+
+
+
