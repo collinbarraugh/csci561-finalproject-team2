@@ -100,3 +100,21 @@ max_train_index = length(high_train$var) + length(med_train$var) + length(low_tr
 train_indices = 1:max_train_index
 validate_indices = (max_train_index + 1):length(df$classification)
 ```
+
+
+```{r}
+for (i in 3:16){
+  hist(df[,i])
+  print(skewness(df[,i]))
+}
+
+
+```
+
+
+
+
+
+
+
+
