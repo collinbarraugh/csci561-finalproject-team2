@@ -11,12 +11,21 @@ to each dataset. The ith element in the var variable corresponds to the name and
 the ith element in the mat variable.
 
 ```{r}
-load("./data/High/high_train.RData")
-load("./data/Medium/med_train.RData")
-load("./data/Low/low_train.RData")
-load("./data/High/high_validate.RData")
-load("./data/Medium/med_validate.RData")
-load("./data/Low/low_validate.RData")
+#load("./data/High/high_train.RData")
+#load("./data/Medium/med_train.RData")
+#load("./data/Low/low_train.RData")
+#load("./data/High/high_validate.RData")
+#load("./data/Medium/med_validate.RData")
+#load("./data/Low/low_validate.RData")
+```
+
+```{r}
+load("C:\\Users\\Doug\\Documents\\high_train.RData")
+load("C:\\Users\\Doug\\Documents\\med_train.RData")
+load("C:\\Users\\Doug\\Documents\\low_train.RData")
+load("C:\\Users\\Doug\\Documents\\high_validate.RData")
+load("C:\\Users\\Doug\\Documents\\med_validate.RData")
+load("C:\\Users\\Doug\\Documents\\low_validate.RData")
 ```
 
 ```{r}
@@ -346,6 +355,76 @@ print(test.matrix)
 
 30/40
 ```
+
+```{r}
+best.subset = regsubsets(df[,2] ~., df[,-2], nvmax = 29)
+summary(best.subset)
+
+```
+
+```{r}
+summary(best.subset)$adjr2
+print(1111)
+summary(best.subset)$rsq
+print(1111)
+summary(best.subset)$bic
+```
+
+```{r}
+best.subset.sum = summary(best.subset)
+
+which.max(best.subset.sum$adjr2)
+coef(best.subset, 22)
+```
+
+```{r}
+df.best.predictors = as.data.frame(cbind(df$zeroes, df$norm, df$min, df$max, df$q3, df$std, df$range, df$skew, df$kurtosis, df$aboveMeanCount, df$norm.log, df$min.log, df$max.log, df$q1.log, df$q3.log, df$med.log, df$kurtosis.log, df$aboveMeanCount.log, df$contourCount, df$contourLength, df$mean, df$zeros.log, df$classification))
+
+
+```
+
+
+```{r}
+compression_train_best = df.best.predictors[1:710, ]
+compression_test_best = df.best.predictors[711:980, ]
+
+```
+
+```{r}
+compress.boost.best = maboost(compression_train_best[,-23], compression_train_best[,23], iter = 500, nu = .02)
+
+varplot.maboost(compress.boost.best)
+
+boost.test.pred.best = predict(compress.boost.best, compression_test_best[,-23])
+
+test.matrix = table(compression_test_best[,23], boost.test.pred.best)
+print(test.matrix)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
