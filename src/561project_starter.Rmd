@@ -111,8 +111,241 @@ for (i in 3:16){
 
 ```
 
+```{r}
+# Not sure if we want to do this for all of these variables????????
+# Each variable has a printed skewness in the section above and the change after transformation.
+for (i in 1:length(df$sum)){
+  if (df[i,3] == 0){
+    df[i,3] = df[i,3] +.1
+  }
+}
+zeros.log = log(df[,3])
+hist(zeros.log)
+df = cbind(df, data.frame("zeros.log"=zeros.log))
+skewness(df$zeros.log)
+```
 
 
+```{r}
+for (i in 1:length(df$sum)){
+  if (df[i,4] == 0){
+    df[i,4] = df[i,4] +.1
+  }
+}
+
+norm.log = log(df[,4])
+print(skewness(norm.log))
+hist(norm.log)
+df = cbind(df, data.frame("norm.log"=norm.log))
+print(skewness(norm.log))
+```
+
+
+```{r}
+for (i in 1:length(df$sum)){
+  if (df[i,5] == 0){
+    df[i,5] = df[i,5] +.1
+  }
+}
+
+min.log = log(df[,5])
+hist(min.log)
+df = cbind(df, data.frame("min.log"=min.log))
+print(skewness(min.log))
+```
+
+
+```{r}
+
+for (i in 1:length(df$sum)){
+  if (df[i,6] == 0){
+    df[i,6] = df[i,6] +.1
+  }
+}
+
+max.log = log(df[,6])
+hist(max.log)
+df = cbind(df, data.frame("max.log"=max.log))
+print(skewness(max.log))
+```
+
+```{r}
+
+for (i in 1:length(df$sum)){
+  if (df[i,7] == 0){
+    df[i,7] = df[i,7] +.1
+  }
+}
+
+q1.log = log(df[,7])
+hist(q1.log)
+df = cbind(df, data.frame("q1.log"=q1.log))
+print(skewness(q1.log))
+```
+
+```{r}
+for (i in 1:length(df$sum)){
+  if (df[i,8] == 0){
+    df[i,8] = df[i,8] +.1
+  }
+}
+
+q3.log = log(df[,8])
+hist(q3.log)
+df = cbind(df, data.frame("q3.log"=q3.log))
+print(skewness(q3.log))
+```
+
+```{r}
+# This column isn't working, haven't spent a ton of time looking itno why yet. 
+
+#iqr.log = log(df[,9])
+#hist(iqr.log)
+#summary(iqr.log)
+#mean.log = log(df[,10])
+#hist(mean.log)
+#df = cbind(df, data.frame("mean.log"=mean.log))
+```
+
+
+```{r}
+for (i in 1:length(df$sum)){
+  if (df[i,11] == 0){
+    df[i,11] = df[i,11] +.1
+  }
+}
+
+med.log = log(df[,11])
+hist(med.log)
+df = cbind(df, data.frame("med.log"=med.log))
+print(skewness(med.log))
+```
+```{r}
+
+for (i in 1:length(df$sum)){
+  if (df[i,12] == 0){
+    df[i,12] = df[i,12] +.1
+  }
+}
+
+std.log = log(df[,12])
+hist(std.log)
+df = cbind(df, data.frame("std.log"=std.log))
+print(skewness(std.log))
+```
+```{r}
+
+for (i in 1:length(df$sum)){
+  if (df[i,13] == 0){
+    df[i,13] = df[i,13] +.1
+  }
+}
+
+range.log = log(df[,13])
+hist(range.log)
+df = cbind(df, data.frame("range.log"=range.log))
+print(skewness(range.log))
+```
+```{r}
+
+for (i in 1:length(df$sum)){
+  if (df[i,14] == 0){
+    df[i,14] = df[i,14] +.1
+  }
+}
+
+skew.log = log(df[,14])
+hist(skew.log)
+df = cbind(df, data.frame("skew.log"=skew.log))
+print(skewness(skew.log))
+```
+
+```{r}
+for (i in 1:length(df$sum)){
+  if (df[i,15] == 0){
+    df[i,15] = df[i,15] +.1
+  }
+}
+
+
+kurtosis.log = log(df[,15])
+hist(kurtosis.log)
+df = cbind(df, data.frame("kurtosis.log"=kurtosis.log))
+print(skewness(kurtosis.log))
+```
+```{r}
+
+for (i in 1:length(df$sum)){
+  if (df[i,16] == 0){
+    df[i,16] = df[i,16] +.1
+  }
+}
+
+aboveMeanCount.log = log(df[,16])
+hist(aboveMeanCount.log)
+df = cbind(df, data.frame("aboveMeanCount.log"=aboveMeanCount.log))
+print(skewness(aboveMeanCount.log))
+```
+
+
+
+```{r}
+df[is.na(df)] <- 0
+compression_train = df[1:710, ]
+compression_test = df[711:980, ]
+compression.tree = tree(classification~., data = compression_train)
+
+summary(compression.tree)
+
+plot(compression.tree)
+text(compression.tree, pretty =0 )
+
+```
+
+
+```{r}
+compression.pred = predict(compression.tree, compression_test, type = "class")
+
+table(compression_test$classification, compression.pred)
+
+(116+58+26)/(116+24+0+22+58+10+4+10+26)
+```
+
+```{r}
+cv.compress = cv.tree(compression.tree, FUN = prune.tree)
+
+plot(cv.compress$size, cv.compress$dev, type = "b", xlab = "Tree Size", ylab = "Deviance")
+
+```
+
+
+
+```{r}
+library(maboost)
+# Run with only log transformed and got same result
+compress.boost = maboost(compression_train[,-2], compression_train$classification, iter = 500, nu = .02)
+
+varplot.maboost(compress.boost)
+
+boost.test.pred = predict(compress.boost, compression_test[,-2])
+```
+
+```{r}
+
+test.matrix = table(compression_test[,2], boost.test.pred)
+print(test.matrix)
+```
+
+```{r}
+# high = high varies from 131 to 134
+(140+57+30)/(134+6+10+50+30+10+30)
+
+140/(140)
+
+57/ (57+10+23)
+
+30/40
+```
 
 
 
