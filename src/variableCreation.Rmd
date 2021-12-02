@@ -18,6 +18,7 @@ library(dplyr)
 library(e1071) 
 library(keras)
 library(tensorflow)
+library(entropy)
 
 #Use this in command line if tensorflow.keras not found error
 #use_condaenv("r-tensorflow")
@@ -27,7 +28,7 @@ Reading in data:
 
 ```{r}
 # Set working directory as needed
-#setwd("~/Documents/fall2021/DSCI561/finalProject")
+setwd("/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2")
 
 load("./data/High/high_train.RData")
 load("./data/Medium/med_train.RData")
@@ -114,6 +115,8 @@ range = c()
 skew = c()
 kurtosis = c()
 aboveMean = c()
+entropy = c()
+#magOrder = c()
 
 # Loop through datasets and populate vectors
 for (i in 1:length(ds_list)){
@@ -149,6 +152,12 @@ for (i in 1:length(ds_list)){
     
     # How many elements > mean
     aboveMean = c(aboveMean, length(which(mat > mean(mat))))
+    
+    # Shannon entropy
+    entropy = c(entropy, entropy(mat))
+    
+    # log10 (max value) - log10 (min value)
+    #magOrder = c(magOrder, log10(max(mat))-log10(min(mat)))
   }
 }
 ```
@@ -168,6 +177,118 @@ df = cbind(df, data.frame("range"=range))
 df = cbind(df, data.frame("skew"=skew))
 df = cbind(df, data.frame("kurtosis"=kurtosis))
 df = cbind(df, data.frame("aboveMeanCount"=aboveMean))
+df = cbind(df, data.frame("entropy"=entropy))
+#df = cbind(df, data.frame("magOrder"=magOrder))
+```
+
+Below is Doug's code to take the log of certain variables. 
+
+```{r}
+# Zeroes
+zeroes_fix = df$zeroes
+zeroes_fix = ifelse(zeroes_fix==0,zeroes_fix+.1,zeroes_fix)
+zeros.log = log(zeroes_fix)
+df = cbind(df, data.frame("zeros.log"=zeros.log))
+#hist(zeros.log)
+#skewness(df$zeros.log)
+
+# Norm
+norm_fix = df$norm
+norm_fix = ifelse(norm_fix==0,norm_fix+.1,norm_fix)
+norm.log = log(norm_fix)
+df = cbind(df, data.frame("norm.log"=norm.log))
+#hist(norm.log)
+#print(skewness(norm.log))
+
+# Min
+min_fix = df$min
+min_fix = ifelse(min_fix==0,min_fix+.1,min_fix)
+min.log = log(min_fix)
+df = cbind(df, data.frame("min.log"=min.log))
+#hist(min.log)
+#print(skewness(min.log))
+
+# Max
+max_fix = df$max
+max_fix = ifelse(max_fix==0,max_fix+.1,max_fix)
+max.log = log(max_fix)
+df = cbind(df, data.frame("max.log"=max.log))
+#hist(max.log)
+#print(skewness(max.log))
+
+# Q1
+q1_fix = df$q1
+q1_fix = ifelse(q1_fix==0,q1_fix+.1,q1_fix)
+q1.log = log(q1_fix)
+df = cbind(df, data.frame("q1.log"=q1.log))
+#hist(q1.log)
+#print(skewness(q1.log))
+
+# Q3
+q3_fix = df$q3
+q3_fix = ifelse(q3_fix==0,q3_fix+.1,q3_fix)
+q3.log = log(q3_fix)
+df = cbind(df, data.frame("q3.log"=q3.log))
+#hist(q3.log)
+#print(skewness(q3.log))
+
+# Med
+med_fix = df$med
+med_fix = ifelse(med_fix==0,med_fix+.1,med_fix)
+med.log = log(med_fix)
+df = cbind(df, data.frame("med.log"=med.log))
+#hist(med.log)
+#print(skewness(med.log))
+
+# Std
+std_fix = df$std
+std_fix = ifelse(std_fix==0,std_fix+.1,std_fix)
+std.log = log(std_fix)
+df = cbind(df, data.frame("std.log"=std.log))
+#hist(std.log)
+#print(skewness(std.log))
+
+# Range
+range_fix = df$range
+range_fix = ifelse(range_fix==0,range_fix+.1,range_fix)
+range.log = log(range_fix)
+df = cbind(df, data.frame("range.log"=range.log))
+#hist(range.log)
+#print(skewness(range.log))
+
+# Skew
+skew_fix = df$skew
+skew_fix = ifelse(skew_fix==0,skew_fix+.1,skew_fix)
+skew.log = log(skew_fix)
+df = cbind(df, data.frame("skew.log"=skew.log))
+#hist(skew.log)
+#print(skewness(skew.log))
+
+# Kurtosis
+kurtosis_fix = df$kurtosis
+kurtosis_fix = ifelse(kurtosis_fix==0,kurtosis_fix+.1,kurtosis_fix)
+kurtosis.log = log(kurtosis_fix)
+df = cbind(df, data.frame("kurtosis.log"=kurtosis.log))
+#hist(kurtosis.log)
+#print(skewness(kurtosis.log))
+
+# AboveMeanCount
+aboveMeanCount_fix = df$aboveMeanCount
+aboveMeanCount_fix = ifelse(aboveMeanCount_fix==0,aboveMeanCount_fix+.1,aboveMeanCount_fix)
+aboveMeanCount.log = log(aboveMeanCount_fix)
+df = cbind(df, data.frame("aboveMeanCount.log"=aboveMeanCount.log))
+#hist(aboveMeanCount.log)
+#print(skewness(aboveMeanCount.log))
+```
+
+Adding in Jose's contour data. I saved this to a CSV that is in our /data folder. We will do a simple cbind() to attach the two variables.
+
+```{r}
+contour = read_csv("../data/contourData.csv")
+```
+
+```{r}
+df = cbind(df,contour)
 ```
 
 'df' is our (current) finalized dataframe with all our new features.
@@ -176,9 +297,28 @@ Now we standardize our features:
 
 ```{r}
 # Don't scale the target or dummy for whether it's in train/test set
-standardized.df = data.frame(scale(df[,-c(2,3)]))
+standardized.df = data.frame(scale(df[,c("sum","norm","min","max","q1","q3",
+                                         "iqr","mean","med","std","range",
+                                         "kurtosis")]))
 standardized.df$classification = df$classification
 standardized.df$validate = df$validate
+standardized.df$zeroes = df$zeroes
+standardized.df$aboveMeanCount = df$aboveMeanCount
+standardized.df$entropy = df$entropy
+standardized.df$zeros.log = df$zeros.log
+standardized.df$norm.log = df$norm.log
+standardized.df$min.log = df$min.log
+standardized.df$max.log = df$max.log
+standardized.df$q1.log = df$q1.log
+standardized.df$q3.log = df$q3.log
+standardized.df$med.log = df$med.log
+standardized.df$std.log = df$std.log
+standardized.df$range.log = df$range.log
+standardized.df$skew.log = df$skew.log
+standardized.df$kurtosis.log = df$kurtosis.log
+standardized.df$aboveMeanCount.log = df$aboveMeanCount.log
+standardized.df$contourCount = df$contourCount
+standardized.df$contourLength = df$contourLength
 ```
 
 We can play around with which features, if any, we want to scale. All you need to do is exclude those you don't want scaled in line 174, then add them to the standardized.df as per lines 175 and 176.
