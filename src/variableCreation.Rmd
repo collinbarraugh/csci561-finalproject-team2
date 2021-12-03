@@ -293,12 +293,18 @@ df = cbind(df,contour)
 
 'df' is our (current) finalized dataframe with all our new features.
 
+```{r}
+# Change file path as needed
+#write.csv(df, "/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2/data/df.csv", row.names = FALSE)
+```
+
+
 Now we standardize our features:
 
 ```{r}
 # Don't scale the target or dummy for whether it's in train/test set
 standardized.df = data.frame(scale(df[,c("sum","norm","min","max","q1","q3",
-                                         "iqr","mean","med","std","range",
+                                         "iqr","mean","med","std","range","skew",
                                          "kurtosis")]))
 standardized.df$classification = df$classification
 standardized.df$validate = df$validate
@@ -318,10 +324,16 @@ standardized.df$skew.log = df$skew.log
 standardized.df$kurtosis.log = df$kurtosis.log
 standardized.df$aboveMeanCount.log = df$aboveMeanCount.log
 standardized.df$contourCountLSD = df$contourCountLSD
-standardized.df$contourAveLength = df$contourAveLength
+standardized.df$contourAvgLength = df$contourAvgLength
 standardized.df$contourLengthLSD = df$contourLengthLSD
 standardized.df$contourAvgLengthLSD = df$contourAvgLengthLSD
 ```
+
+```{r}
+# Change file path as needed
+#write.csv(standardized.df, "/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2/data/standardizeddf.csv", row.names = FALSE)
+```
+
 
 We can play around with which features, if any, we want to scale. All you need to do is exclude those you don't want scaled in line 174, then add them to the standardized.df as per lines 175 and 176.
 
