@@ -1,0 +1,134 @@
+---
+title: "Normalize and Reshape Image Datasets"
+author: "Team 2"
+date: "12/06/2021"
+output: pdf_document
+---
+
+# Libraries
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Use this in command line if tensorflow.keras not found error: use_condaenv("r-tensorflow")
+
+# Load Data
+```{r}
+load("./data/High/high_train.RData")
+load("./data/Medium/med_train.RData")
+load("./data/Low/low_train.RData")
+load("./data/High/high_validate.RData")
+load("./data/Medium/med_validate.RData")
+load("./data/Low/low_validate.RData")
+```
+
+# Preparing for pooling and convolutions
+
+Convolutions and pooling in R: https://rpubs.com/eR_ic/conv_pools.
+
+Here are a few things we need to know first about the images we are dealing with:
+
+  - All images have dimensions 288 x 192
+  - All images  have 1 depth of 1 (binary).
+  - We visualize this 1 dimensional range of values on a red-blue color scale.
+  - The range of values for each image differs by the type of data
+  - Number of images per dataset are as follows:
+    - low_train: 110
+    - med_train: 240
+    - high_train: 360
+    - low_validate: 40
+    - med_validate: 90
+    - high_validate: 140
+  - Therefore there are a total of 980 images (270 validation + 710 training)
+
+In order to perform pooling we will need to normalize the pixel values in each image by
+
+   - Adjusting the range to have a 0 minimum
+   - Divide by maximum value in each image
+
+```{r}
+#Normalize the data.
+
+#Function that takes in a single image input (288x192 pixels) and rescales pixels to go 0 to max-min and normalizes them dividing by max-min.
+normalize_image_pixels <- function(image){
+  
+  #Get the minumum value.
+  min_val = min(image)
+
+  #Subtract the lowest value from each value in the entire image.
+  #This will make it so that the range of values is from 0 to (max - min).
+  image = image - min_val
+
+  #Get the new max value.
+  max_val = max(image)
+
+  #Divide the pixel values by the max value and return the result
+  return(image / max_val)
+
+}
+
+#Normalize the data in the training and validation images. 
+low_train_norm = low_train
+for (i in 1:length(low_train_norm$mat)){
+  low_train_norm$mat[[i]] = normalize_image_pixels(low_train_norm$mat[[i]])
+}
+
+med_train_norm = med_train
+for (i in 1:length(med_train_norm$mat)){
+  med_train_norm$mat[[i]] = normalize_image_pixels(med_train_norm$mat[[i]])
+}
+
+high_train_norm = high_train
+for (i in 1:length(high_train_norm$mat)){
+  high_train_norm$mat[[i]] = normalize_image_pixels(high_train_norm$mat[[i]])
+}
+
+low_validate_norm = low_validate
+for (i in 1:length(low_validate_norm$mat)){
+  low_validate_norm$mat[[i]] = normalize_image_pixels(low_validate_norm$mat[[i]])
+}
+
+med_validate_norm = med_validate
+for (i in 1:length(med_validate_norm$mat)){
+  med_validate_norm$mat[[i]] = normalize_image_pixels(med_validate_norm$mat[[i]])
+}
+
+high_validate_norm = high_validate
+for (i in 1:length(high_validate_norm$mat)){
+  high_validate_norm$mat[[i]] = normalize_image_pixels(high_validate_norm$mat[[i]])
+}
+
+```
+
+Let's write this data out to .csv files so that we can use python and numpy to do pooling on its own. Uncomment if you want to save the results.
+
+```{r}
+#write.csv(data.frame(low_validate_norm$mat), "./data/normalized/low_validate_norm.csv")
+```
+
+
+Lets visualize some of this normalized data:
+
+```{r}
+# Select data and axis labels
+n=170
+selected_dataset = med_train_norm # copy of med_train_norm list of datasets
+l = length(selected_dataset$mat) # number of datasets in med_train_norm
+latitudes = round(as.numeric(colnames(selected_dataset$mat[[n]])))
+longitudes = as.numeric(rownames(selected_dataset$mat[[n]]))
+dataset = selected_dataset$mat[[n]] 
+varname = selected_dataset$var[n]
+
+# Plot
+image(dataset, main=varname, col = hcl.colors(100, "Blue-Red"),
+      axes=FALSE, xlab="Longitude", ylab="Latitude")
+axis(3, at=seq(0,1, length=7), labels=longitudes[seq(1, 288, length.out=7)],
+     lwd=0, pos=-0.2, outer=T)
+axis(2, at=seq(1,0, length=9), labels=latitudes[seq(1, 192, length.out=9)],
+     lwd=0, pos=0)
+```
+
+We don't see a difference between the normalized image and original image. 
+This is a good thing because the we did a simple addition and division to all of the pixels.
+That means the pixels should have the same relative difference to one another.
+Our red/blue color scale will thus remain unaffected.
