@@ -416,6 +416,8 @@ compression_test_scaled = df.scaled[711:980, ]
 for (i in 1:15){
   knn.pred = knn(compression_train_scaled, compression_test_scaled, compression_train[,2], k= i)
   print(table(knn.pred, compression_test[,2]))
+  print("K =")
+  print(i)
 }
 
 ```
