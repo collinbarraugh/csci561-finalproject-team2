@@ -293,6 +293,22 @@ df = cbind(df,contour)
 
 'df' is our (current) finalized dataframe with all our new features.
 
+Adding in Collin's pooling data.
+
+```{r}
+pooling = read_csv("pooling/train_validation_poolingFeatures.csv")
+```
+Cleaning it up a bit so we can attach to 'df'
+
+```{r}
+pooling = pooling[-c(1:4),-1]
+```
+
+Add to 'df'
+```{r}
+df = cbind(df,pooling)
+```
+
 ```{r}
 # Change file path as needed
 #write.csv(df, "/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2/data/df.csv", row.names = FALSE)
@@ -327,6 +343,11 @@ standardized.df$contourCountLSD = df$contourCountLSD
 standardized.df$contourAvgLength = df$contourAvgLength
 standardized.df$contourLengthLSD = df$contourLengthLSD
 standardized.df$contourAvgLengthLSD = df$contourAvgLengthLSD
+standardized.df$VarPool_75x25_MaxStat = df$VarPool_75x25_MaxStat
+standardized.df$StdPool_75x25_VarStat = df$StdPool_75x25_VarStat
+standardized.df$StdPool_75x25_StdStat = df$StdPool_75x25_StdStat
+standardized.df$VarPool_75x25_StdStat = df$VarPool_75x25_StdStat
+standardized.df$VarPool_75x25_MeanStat = df$VarPool_75x25_MeanStat
 ```
 
 ```{r}
