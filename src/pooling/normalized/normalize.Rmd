@@ -20,6 +20,7 @@ load("./data/Low/low_train.RData")
 load("./data/High/high_validate.RData")
 load("./data/Medium/med_validate.RData")
 load("./data/Low/low_validate.RData")
+load("./data/test/test.RData")
 ```
 
 # Preparing for pooling and convolutions
@@ -98,12 +99,17 @@ for (i in 1:length(high_validate_norm$mat)){
   high_validate_norm$mat[[i]] = normalize_image_pixels(high_validate_norm$mat[[i]])
 }
 
+test_norm = test_df
+for (i in 1:length(test_norm$mat)){
+  test_norm$mat[[i]] = normalize_image_pixels(test_norm$mat[[i]])
+}
+
 ```
 
 Let's write this data out to .csv files so that we can use python and numpy to do pooling on its own. Uncomment if you want to save the results.
 
 ```{r}
-#write.csv(data.frame(low_validate_norm$mat), "./data/normalized/low_validate_norm.csv")
+# write.csv(data.frame(test_norm$mat), "./src/pooling/normalized/test_norm.csv")
 ```
 
 
