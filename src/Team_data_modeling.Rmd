@@ -1,0 +1,59 @@
+---
+title: "Modeling"
+author: "Doug Curth"
+date: "12/7/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list=ls())
+df = read.csv("C://Users//Doug//Documents//GitHub//csci561-finalproject-team2//data//df.csv")
+standardized.df = read.csv("C://Users//Doug//Documents//GitHub//csci561-finalproject-team2//data//standardizeddf.csv")
+
+```
+
+
+
+```{r}
+df[is.na(df)] <- 0
+compression_train = df[1:710, ]
+compression_test = df[711:980, ]
+
+```
+
+```{r}
+```{r}
+best.subset = regsubsets(df[,2] ~., df[,-2], nvmax = 29)
+summary(best.subset)
+
+```
+
+```{r}
+summary(best.subset)$adjr2
+print(1111)
+summary(best.subset)$rsq
+print(1111)
+summary(best.subset)$bic
+```
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
