@@ -1,0 +1,163 @@
+---
+title: "DSCI561 - Final Project - Modeling"
+author: "Team 2"
+date: "12/5/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(gridExtra)
+library(reshape2)
+library(maboost)
+library(randomForest)
+```
+
+```{r}
+df = read_csv("../data/df.csv")
+sdf = read_csv("../data/standardizeddf.csv")
+```
+Removing the 'validate' column
+```{r}
+df = df[,-3]
+```
+
+```{r}
+# Split into training and test sets
+df[is.na(df)] <- 0
+df.train = df[1:710,]
+df.test = df[711:980,] 
+```
+
+Standardized data, if interested (current not using)
+```{r}
+#sdf[is.na(sdf)] <- 0
+#sdf.train = sdf[1:710,]
+#sdf.test = sdf[711:980,]
+#sdf.train.lm = sdf.train[sdf.train$classification %in% c('low','med'),]
+#sdf.test.lm =  sdf.test[sdf.test$classification %in% c('low','med'),]
+```
+
+Boosted tree on all the data:
+```{r}
+# Fit the boosted model for all 3 compression levels
+compress.boost = maboost(classification~.-validate, data=df.train, iter = 500, nu = .02)
+
+boost.test.pred = predict(compress.boost, df.test[,-c(2)]) # remove column for classification
+#test.matrix = table(df.test$classification, boost.test.pred)
+#print(test.matrix)
+```
+
+# Model low/medium values
+
+```{r}
+# 'lm' = 'low/medium' ...
+df.train.lm = df.train[df.train$classification %in% c('low','med'),]
+df.test.lm =  df.test[df.test$classification %in% c('low','med'),]
+```
+
+kurtosis, abovemeancount, linear kernel
+```{r}
+set.seed(1)
+tune.out=tune(svm,as.factor(classification)~aboveMeanCount+kurtosis,data=df.train.lm,kernel="linear",ranges=list(cost=c(0.001, 0.01, 0.1, 1,5,10,100)))
+
+bestmod=tune.out$best.model
+```
+
+```{r}
+# Multi-step model
+
+predict_image = function(x){
+  boost_pred = predict(compress.boost, x[,-2])
+
+  # If true, we predict the matrix to be of high optimal compression
+  if(boost_pred == "high"){
+    return("high")
+  } else{
+  
+    # If it's not predicted high, run through the chosen low/medium compression level
+    # model -- in this case, SVC w/ a linear kernel that uses the features: kurtosis, aboveMeanCount
+    x.vals = x %>% dplyr::select(aboveMeanCount, kurtosis)
+    y.val = as.factor(x$classification)
+    
+    return(as.character(predict(bestmod,x.vals)))
+  }
+}
+```
+
+Note: because we're applying this model via a loop, the runtime for this next chunk is fairly long.
+```{r}
+preds = c() # populate with predictions from multi-stage model
+for(i in 1:nrow(df.test)){
+  mat = df.test[i,]
+  preds = c(preds, predict_image(mat))
+}
+```
+
+```{r}
+table(preds, df.test$classification)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# Multi-step model
+
+predict_image = function(x){
+  boost_pred = predict(compress.boost, x[-c(2,3)])
+
+  # If true, we predict the matrix to be of high optimal compression
+  if(boost_pred == "high"){
+    return("high")
+  } else{
+  
+    # If it's not predicted high, run through the chosen low/medium compression level
+    # model -- in this case, SVC w/ a linear kernel that uses the features: kurtosis, aboveMeanCount
+    x.vals = x[c(16,17)]
+    y.val = as.factor(x[2])
+    
+    return(as.character(predict(bestmod,x.vals)))
+  }
+}
+```
+
+```{r}
+test.mat = as.matrix(df.test)
+apply(test.mat, 1, predict_image)
+```
+
+```{r}
+apply(df.test, 1, predict_image)
+```
+
+```{r}
+#mat = df.test[1,] # this will be predicted as high
+#apply(df.test, 1, predict_image)
+
+preds = c()
+for(i in 1:nrow(df.test)){
+  mat = df.test[i,]
+  preds = c(preds, predict_image(mat))
+}
+```
+
+```{r}
+table(preds, df.test$classification)
+```
+
