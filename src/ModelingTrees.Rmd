@@ -295,7 +295,7 @@ best_paramALL <- list(objective = "multi:softprob",
 
 bst_model <- xgb.train(params = best_paramALL,
                        data = train_matrix,
-                       nrounds = nrounds,
+                       nrounds = nround,
                        nthread =6)
 
 # Predict hold-out test set
@@ -910,16 +910,33 @@ testfinal.class$pred.ml <- test_predictionML$max_prob
 ######################Majority vote####################
 for (i in 1:nrow(testfinal.class)){
   if (testfinal.class$pred.all[i] == 1){
-      testfinal.class$pred.ml[i] = "NA"
+      #testfinal.class$pred.ml[i] = "NA"
   }
   if (testfinal.class$pred.all[i] == 2){
-    testfinal.class$pred.hl[i] = "NA"
+    #testfinal.class$pred.hl[i] = "NA"
+
   }
   if (testfinal.class$pred.all[i] == 3){
-    testfinal.class$pred.hm[i] = "NA"
+    #testfinal.class$pred.hm[i] = "NA"
   }
 }
+
 testfinal.class$majority.class <- apply(testfinal.class[,18:21],1,mfv)
+
+
+for (i in 1:nrow(testfinal.class)){
+  if ((testfinal.class$majority.class[i]) == "c(1, 2)"){
+      testfinal.class$majority.class[i] = 1
+  }
+  if ((testfinal.class$majority.class[i]) == "c(2, 3)"){
+      testfinal.class$majority.class[i] = 2
+  }
+  if ((testfinal.class$majority.class[i]) == "c(1, 3)"){
+      testfinal.class$majority.class[i] = 1
+  }  
+}
+testfinal.class$majority.class <- as.numeric(testfinal.class$majority.class)
+                             
 ```
 
 ```{r}
