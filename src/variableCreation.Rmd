@@ -36,7 +36,16 @@ load("./data/Low/low_train.RData")
 load("./data/High/high_validate.RData")
 load("./data/Medium/med_validate.RData")
 load("./data/Low/low_validate.RData")
+load("./data/test/test.RData")
 ```
+
+```{r}
+# Set working directory as needed
+#setwd("/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2")
+
+#load("./data/test/test.RData")
+```
+
 
 Try plotting:
 
@@ -63,7 +72,7 @@ Let's use Dr. Hammerling's code to initialize our dataframe of [datasets, featur
 
 ```{r}
 df = data.frame()
-ds_list = list(high_train, med_train, low_train, high_validate, med_validate, low_validate)
+ds_list = list(high_train, med_train, low_train, high_validate, med_validate, low_validate, test_df)
 classifications = c("high", "med", "low")
 class_index = rep(c(1, 2, 3), 2)
 for (i in 1:length(ds_list)){
@@ -83,7 +92,7 @@ for (i in 1:length(ds_list)){
 df$classification = as.factor(df$classification)
 
 # Append a new feature, this one is the number of zeroes in each dataset, a measure of the sparsity of the dataset.
-ds_list = list(high_train, med_train, low_train, high_validate, med_validate, low_validate)
+ds_list = list(high_train, med_train, low_train, high_validate, med_validate, low_validate, test_df)
 z = c()
 for (i in 1:length(ds_list)){
   l = length(ds_list[[i]]$mat)
@@ -285,6 +294,8 @@ Adding in Jose's contour data. I saved this to a CSV that is in our /data folder
 
 ```{r}
 contour = read_csv("../data/contourData.csv")
+contourtest = read_csv("../data/contourDataTest.csv")
+contour = rbind(contour,contourtest)
 ```
 
 ```{r}
@@ -297,11 +308,14 @@ Adding in Collin's pooling data.
 
 ```{r}
 pooling = read_csv("pooling/train_validation_poolingFeatures.csv")
+poolingtest = read_csv("pooling/testing_poolingFeatures.csv")
 ```
 Cleaning it up a bit so we can attach to 'df'
 
 ```{r}
 pooling = pooling[-c(1:4),-1]
+poolingtest = poolingtest[-c(1:4),-1]
+pooling = rbind(pooling, poolingtest)
 ```
 
 Add to 'df'
