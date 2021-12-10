@@ -1,0 +1,933 @@
+---
+title: "561Project"
+author: "Jose Molina-Galeano"
+date: "November 29, 2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#library(Matrix)
+library(dplyr)
+#library(resample)
+#library(ISLR)
+#library(tree)
+#library(gbm)
+#library(MASS)
+#library(class)
+library(e1071) 
+library(image.ContourDetector)
+library(image.LineSegmentDetector)
+library(image.CannyEdges)
+library(pixmap)
+library(magick)
+library(imager)
+library(purrr)
+library(modeest)
+```
+
+
+
+```{r}
+# Set working directory as needed
+#setwd("C:\\Users\\Kjagi\\OneDrive - Colorado School of Mines\\Fall2021\\MATH561\\Final_Project")
+```
+
+
+```{r}
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(ggExtra)
+```
+
+```{r}
+library(tree)
+library(dplyr)
+df <- read.csv("StandardizedData.csv")
+df[is.na(df)] = 0
+
+best.features = c("kurtosis", "aboveMeanCount", "entropy", "zeros.log", "norm.log", "min.log", "max.log", "q1.log","q3.log", "med.log", "std.log", "skew.log", "aboveMeanCount.log", "contourAvgLengthLSD", "VarPool_75x25_StdStat", "range", "classification")
+
+df <- df[best.features]
+
+
+df["class"]<-NA
+
+for (i in 1:length(df$classification)){
+  if (df$classification[i] == "high"){
+    df$class[i] = 0
+  }
+  if (df$classification[i] == "med"){
+    df$class[i] = 1
+  }
+  if (df$classification[i] == "low"){
+    df$class[i] = 2
+  
+  }
+}
+df <- subset(df, select = -c(classification))
+#df <- subset(df, select = -c(validate))
+
+
+compression_train = df[1:710, ]
+compression_test = df[711:980, ]
+
+H <- filter(compression_train, compression_train$class == 0)
+M <- filter(compression_train, compression_train$class == 1)
+L <- filter(compression_train, compression_train$class == 2)
+
+nrow(H)
+nrow(M)
+nrow(L)
+
+
+```
+
+
+
+```{r}
+
+
+SCL1 <- filter(compression_train, compression_train$class == 0)
+SCL2 <- filter(compression_train, compression_train$class == 1)
+SCL3 <- filter(compression_train, compression_train$class == 2)
+
+dim(SCL1)
+dim(SCL2)
+dim(SCL3)
+
+```
+```{r}
+set.seed(3.1416)
+
+
+TRAINSET123 = data.frame()
+trainCL1 = data.frame()
+trainCL2 = data.frame()
+trainCL3 = data.frame()
+
+
+indexesCL1 <- sample(1:nrow(SCL1), size = 1.0*nrow(SCL1))
+indexesCL2 <- sample(1:nrow(SCL2), size = 1.0*nrow(SCL2))
+indexesCL3 <- sample(1:nrow(SCL3), size = 1.0*nrow(SCL3))
+
+
+trainCL1<- SCL1[indexesCL1,]
+trainCL2<- SCL2[indexesCL2,]
+trainCL3<- SCL3[indexesCL3,]
+
+TRAINSET123 <- rbind(trainCL1, trainCL2, trainCL3)
+
+```
+
+
+```{r}
+library(smotefamily)
+library(dplyr)
+
+set.seed(3.1416)
+last.col = ncol(SCL1)
+
+#oversampling class M = 1
+TRAINSET123.2 = data.frame()
+TRAINSET123.3 = data.frame()
+
+
+
+for (i in 1:nrow(TRAINSET123)){
+  TRAINSET123$CL2[i] <- ifelse(TRAINSET123$class[i] == 1,1,0)
+}
+TRAINSET123.2 <- TRAINSET123[,-last.col] 
+smote_result22 = SMOTE(TRAINSET123.2[,-last.col],target = TRAINSET123.2$CL2, K = 3, dup_size = 1.0)
+
+oversampled22 = smote_result22$data
+#str(oversampled22)
+
+
+BS2 <- filter(oversampled22, oversampled22$class == 1)
+#nrow(BS2)
+#length(BS2)
+#str(BS2)
+
+#oversampling class P = 2  
+
+for (i in 1:nrow(TRAINSET123)){
+  TRAINSET123$CL3[i] <- ifelse(TRAINSET123$class[i] == 2,2,0)
+}
+TRAINSET123.3<- TRAINSET123[, -c(last.col,last.col+1)]
+smote_result33 = SMOTE(TRAINSET123.3[,- last.col],target = TRAINSET123.3$CL3, K = 4, dup_size = 3)
+
+oversampled33 = smote_result33$data
+BP3 <- filter(oversampled33, oversampled33$class == 2)
+
+#create NEWTRAIN SET 
+newTR.df <- rbind(trainCL1,BS2,BP3)
+newTR <- newTR.df[,-last.col]
+newTR.LABEL <- newTR.df$class
+table(newTR.df$class)
+
+```
+
+```{r}
+newTR.df$class <- as.factor(newTR.df$class)
+compression_test$class <- as.factor(compression_test$class)
+compression_train$class <- as.factor(compression_train$class)
+
+```
+
+
+```{r}
+library("xgboost")  # the main algorithm
+library("caret")    # for the confusionmatrix() function (also needs e1071 package)
+library("Ckmeans.1d.dp") # for xgb.ggplot.importance
+```
+
+### WorkFlow for ALL three classes 
+```{r}
+#edit data 
+data <- data.frame()
+
+newTR.df$class <- as.numeric(newTR.df$class)
+compression_test$class <- as.numeric(compression_test$class)
+data <- rbind(newTR.df, compression_test) %>%
+  mutate(class = class - 1)
+
+
+summary(data)
+```
+
+
+```{r}
+# Make split index
+
+train_index <- sample(1:nrow(newTR.df), nrow(newTR.df)*1.00)
+
+# Full data set
+data_variables <- as.matrix(data[, -last.col])
+data_label <- data[,"class"]
+data_matrix <- xgb.DMatrix(data = data_variables, label = data_label)
+
+# split train data and make xgb.DMatrix
+train_data   <- data_variables[train_index,]
+train_label  <- data_label[train_index]
+train_matrix <- xgb.DMatrix(data = train_data, label = train_label)
+
+# split test data and make xgb.DMatrix
+test_data  <- data_variables[-train_index,]
+test_label <- data_label[-train_index]
+test_matrix <- xgb.DMatrix(data = test_data, label = test_label)
+```
+
+
+```{r}
+
+best_param = list()
+best_seednumber = 3.1416
+best_logloss = Inf
+best_logloss_index = 0
+
+
+for (i in 1:200){
+  xgb_params <- list(objective = "multi:softprob",
+                   eval_metric = "mlogloss",
+                   num_class = 3,
+                   max_depth = sample(6:15, 1),
+                   eta = runif(1, .01, .3),
+                   gamma = runif(1, 0.0, 0.2), 
+                   subsample = runif(1, .6, .9),
+                   colsample_bytree = runif(1, .5, .8), 
+                   min_child_weight = sample(1:40, 1),
+                   max_delta_step = sample(1:10, 1))
+  nround    <- 100 # number of XGBoost rounds
+  cv.nfold  <- 5
+  seed.number = sample.int(10000, 1)[[1]]
+  set.seed(seed.number)
+  
+  cv_model <- xgb.cv(params = xgb_params,
+                   data = train_matrix, 
+                   nrounds = nround,
+                   nfold = cv.nfold,
+                   verbose = FALSE,
+                   nthread =6,
+                   early_stopping_rounds = 8,
+                   maximize = FALSE,
+                   prediction = TRUE)
+  
+  min_logloss = min(cv_model$evaluation_log$test_mlogloss_mean)
+  min_logloss_index = which.min(cv_model$evaluation_log$test_mlogloss_mean)
+  
+  if (min_logloss < best_logloss) {
+        best_logloss = min_logloss
+        best_logloss_index = min_logloss_index
+        best_seednumber = seed.number
+        best_param = xgb_params
+  }
+}
+```
+
+
+```{r}
+OOF_prediction_ALL <- data.frame(cv_model$pred) %>%
+  mutate(max_prob = max.col(., ties.method = "last"),
+         label = train_label + 1)
+head(OOF_prediction_ALL)
+```
+```{r}
+confusionMatrix(factor(OOF_prediction_ALL$max_prob),
+                factor(OOF_prediction_ALL$label),
+                mode = "everything")
+```
+
+```{r}
+nround = 100
+set.seed(7207)
+best_paramALL <- list(objective = "multi:softprob",
+                   eval_metric = "mlogloss",
+                   num_class = 3,
+                   max_depth = 10,
+                   eta = 0.1817226,
+                   gamma = 0.0200425, 
+                   subsample = 0.6234762,
+                   colsample_bytree = 0.5361274, 
+                   min_child_weight = 2,
+                   max_delta_step = 3)
+
+bst_model <- xgb.train(params = best_paramALL,
+                       data = train_matrix,
+                       nrounds = nrounds,
+                       nthread =6)
+
+# Predict hold-out test set
+test_pred_ALL <- predict(bst_model, newdata = test_matrix)
+test_prediction_ALL <- matrix(test_pred_ALL, nrow = 3,
+                          ncol=length(test_pred_ALL)/3) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = test_label + 1,
+         max_prob = max.col(., "last"))
+# confusion matrix of test set
+confusionMatrix(factor(test_prediction_ALL$max_prob),
+                factor(test_prediction_ALL$label),
+                mode = "everything")
+```
+```{r}
+# get the feature real names
+names <-  colnames(data[,-1])
+# compute feature importance matrix
+importance_matrix_ALL = xgb.importance(feature_names = names, model = bst_model)
+head(importance_matrix)
+```
+```{r}
+# plot
+gp = xgb.ggplot.importance(importance_matrix_ALL)
+print(gp) 
+
+```
+### High medium workFlow 
+```{r}
+data.temp= data.frame()
+data.temp2= data.frame()
+data.HM = data.frame()
+
+data.temp = newTR.df[newTR.df$class %in% c(1,2),]
+data.temp2 =compression_test[compression_test$class %in% c(1,2),]
+
+data.temp$class <- as.numeric(data.temp$class)
+data.temp2$class <- as.numeric(data.temp2$class)
+
+
+data.HM <- rbind(data.temp,data.temp2) %>%
+  mutate(class = class -1)
+
+```
+
+```{r}
+#High med
+
+train_index <- sample(1:nrow(data.temp), nrow(data.temp)*1.00)
+
+# Full data set
+data_variables <- as.matrix(data.HM[, -last.col])
+data_label <- data.HM[,"class"]
+data_matrix <- xgb.DMatrix(data = data_variables, label = data_label)
+
+# split train data and make xgb.DMatrix
+train_data   <- data_variables[train_index,]
+train_label  <- data_label[train_index]
+train_matrix <- xgb.DMatrix(data = train_data, label = train_label)
+
+# split test data and make xgb.DMatrix
+test_data  <- data_variables[-train_index,]
+test_label <- data_label[-train_index]
+test_matrix <- xgb.DMatrix(data = test_data, label = test_label)
+```
+
+```{r}
+
+best_param = list()
+best_seednumber = 3.1416
+best_logloss = Inf
+best_logloss_index = 0
+
+
+for (i in 1:200){
+  xgb_params <- list(objective = "multi:softprob",
+                   eval_metric = "mlogloss",
+                   num_class = 2,
+                   max_depth = sample(6:15, 1),
+                   eta = runif(1, .01, .3),
+                   gamma = runif(1, 0.0, 0.2), 
+                   subsample = runif(1, .6, .9),
+                   colsample_bytree = runif(1, .5, .8), 
+                   min_child_weight = sample(1:40, 1),
+                   max_delta_step = sample(1:10, 1))
+  nround    <- 100 # number of XGBoost rounds
+  cv.nfold  <- 5
+  seed.number = sample.int(10000, 1)[[1]]
+  set.seed(seed.number)
+  
+  cv_model <- xgb.cv(params = xgb_params,
+                   data = train_matrix, 
+                   nrounds = nround,
+                   nfold = cv.nfold,
+                   verbose = FALSE,
+                   nthread =6,
+                   early_stopping_rounds = 8,
+                   maximize = FALSE,
+                   prediction = TRUE)
+  
+  min_logloss = min(cv_model$evaluation_log$test_mlogloss_mean)
+  min_logloss_index = which.min(cv_model$evaluation_log$test_mlogloss_mean)
+  
+  if (min_logloss < best_logloss) {
+        best_logloss = min_logloss
+        best_logloss_index = min_logloss_index
+        best_seednumber = seed.number
+        best_param = xgb_params
+  }
+}
+```
+
+
+```{r}
+OOF_prediction_HM <- data.frame(cv_model$pred) %>%
+  mutate(max_prob = max.col(., ties.method = "last"),
+         label = train_label + 1)
+head(OOF_prediction_HM)
+```
+```{r}
+confusionMatrix(factor(OOF_prediction_HM$max_prob),
+                factor(OOF_prediction_HM$label),
+                mode = "everything")
+```
+
+```{r}
+nround = 99
+set.seed(3559)
+best_paramHM <- list(objective = "multi:softprob",
+                   eval_metric = "mlogloss",
+                   num_class = 2,
+                   max_depth = 9,
+                   eta = 0.2202525,
+                   gamma = 0.0318892, 
+                   subsample = 0.7680325,
+                   colsample_bytree = 0.7565032, 
+                   min_child_weight = 2,
+                   max_delta_step = 6)
+
+bst_modelHM <- xgb.train(params = best_paramHM,
+                       data = train_matrix,
+                       nrounds = nround,
+                       nthread =6)
+
+# Predict hold-out test set
+test_predHM <- predict(bst_modelHM, newdata = test_matrix)
+test_predictionHM <- matrix(test_predHM, nrow = 2,
+                          ncol=length(test_predHM)/2) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = test_label + 1,
+         max_prob = max.col(., "last"))
+# confusion matrix of test set
+confusionMatrix(factor(test_predictionHM$max_prob),
+                factor(test_predictionHM$label),
+                mode = "everything")
+```
+```{r}
+# get the feature real names
+names <-  colnames(data[,-1])
+# compute feature importance matrix
+importance_matrixHM = xgb.importance(feature_names = names, model = bst_modelHM)
+head(importance_matrixHM)
+```
+```{r}
+# plot
+gp = xgb.ggplot.importance(importance_matrixHM)
+print(gp) 
+
+```
+### High Low workFlow 
+```{r}
+data.temp= data.frame()
+data.temp2= data.frame()
+data.HL = data.frame()
+
+data.temp = newTR.df[newTR.df$class %in% c(1,3),]
+data.temp2 =compression_test[compression_test$class %in% c(1,3),]
+
+data.temp$class <- as.numeric(data.temp$class)
+data.temp2$class <- as.numeric(data.temp2$class)
+
+
+data.HL <- rbind(data.temp,data.temp2) 
+for (i in 1:nrow(data.HL)){
+  if (data.HL$class[i] == 1){
+    data.HL$class[i] = data.HL$class[i] -1
+  }else{
+    data.HL$class[i] = data.HL$class[i] -2
+  }
+}
+
+
+  
+
+```
+
+```{r}
+#High low
+
+train_index <- sample(1:nrow(data.temp), nrow(data.temp)*1.00)
+
+# Full data set
+data_variables <- as.matrix(data.HL[, -last.col])
+data_label <- data.HL[,"class"]
+data_matrix <- xgb.DMatrix(data = data_variables, label = data_label)
+
+# split train data and make xgb.DMatrix
+train_data   <- data_variables[train_index,]
+train_label  <- data_label[train_index]
+train_matrix <- xgb.DMatrix(data = train_data, label = train_label)
+
+# split test data and make xgb.DMatrix
+test_data  <- data_variables[-train_index,]
+test_label <- data_label[-train_index]
+test_matrix <- xgb.DMatrix(data = test_data, label = test_label)
+```
+
+```{r}
+
+best_param = list()
+best_seednumber = 3.1416
+best_logloss = Inf
+best_logloss_index = 0
+
+
+for (i in 1:200){
+  xgb_params <- list(objective = "multi:softprob",
+                   eval_metric = "mlogloss",
+                   num_class = 2,
+                   max_depth = sample(6:15, 1),
+                   eta = runif(1, .01, .3),
+                   gamma = runif(1, 0.0, 0.2), 
+                   subsample = runif(1, .6, .9),
+                   colsample_bytree = runif(1, .5, .8), 
+                   min_child_weight = sample(1:40, 1),
+                   max_delta_step = sample(1:10, 1))
+  nround    <- 100 # number of XGBoost rounds
+  cv.nfold  <- 5
+  seed.number = sample.int(10000, 1)[[1]]
+  set.seed(seed.number)
+  
+  cv_model <- xgb.cv(params = xgb_params,
+                   data = train_matrix, 
+                   nrounds = nround,
+                   nfold = cv.nfold,
+                   verbose = FALSE,
+                   nthread =6,
+                   early_stopping_rounds = 8,
+                   maximize = FALSE,
+                   prediction = TRUE)
+  
+  min_logloss = min(cv_model$evaluation_log$test_mlogloss_mean)
+  min_logloss_index = which.min(cv_model$evaluation_log$test_mlogloss_mean)
+  
+  if (min_logloss < best_logloss) {
+        best_logloss = min_logloss
+        best_logloss_index = min_logloss_index
+        best_seednumber = seed.number
+        best_param = xgb_params
+  }
+}
+```
+
+
+```{r}
+OOF_predictionHL <- data.frame(cv_model$pred) %>%
+    mutate(max_prob = max.col(., ties.method = "last"),
+         label = train_label+1)
+
+for (i in 1:nrow(OOF_predictionHL)){
+  if (OOF_predictionHL$max_prob[i] == 2){
+    OOF_predictionHL$max_prob[i] = OOF_predictionHL$max_prob[i]+1
+
+  }
+  if(OOF_predictionHL$label[i] == 2){
+    OOF_predictionHL$label[i] = OOF_predictionHL$label[i]+1
+  }
+}
+
+head(OOF_predictionHL)
+```
+
+
+```{r}
+confusionMatrix(factor(OOF_predictionHL$max_prob),
+                factor(OOF_predictionHL$label),
+                mode = "everything")
+```
+
+```{r}
+nround = 49
+set.seed(1040)
+best_paramHL <- list(objective = "multi:softprob",
+                   eval_metric = "mlogloss",
+                   num_class = 2,
+                   max_depth = 14,
+                   eta = 0.1494252,
+                   gamma = 0.1077129, 
+                   subsample = 0.8975567,
+                   colsample_bytree = 0.7227321, 
+                   min_child_weight = 2,
+                   max_delta_step = 10)
+
+bst_modelHL <- xgb.train(params = best_paramHL,
+                       data = train_matrix,
+                       nrounds = nround,
+                       nthread =6)
+
+# Predict hold-out test set
+test_predHL <- predict(bst_modelHL, newdata = test_matrix)
+test_predictionHL <- matrix(test_predHL, nrow = 2,
+                          ncol=length(test_predHL)/2) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = test_label + 1,
+         max_prob = max.col(., "last"))
+
+for (i in 1:nrow(test_predictionHL)){
+  if (test_predictionHL$max_prob[i] == 2){
+    test_predictionHL$max_prob[i] = test_predictionHL$max_prob[i]+1
+
+  }
+  if(test_predictionHL$label[i] == 2){
+    test_predictionHL$label[i] = test_predictionHL$label[i]+1
+  }
+}
+# confusion matrix of test set
+confusionMatrix(factor(test_predictionHL$max_prob),
+                factor(test_predictionHL$label),
+                mode = "everything")
+```
+```{r}
+# get the feature real names
+names <-  colnames(data[,-1])
+# compute feature importance matrix
+importance_matrixHL = xgb.importance(feature_names = names, model = bst_modelHL)
+head(importance_matrixHL)
+```
+```{r}
+# plot
+gp = xgb.ggplot.importance(importance_matrixHL)
+print(gp) 
+
+```
+### Medium Low workFlow 
+```{r}
+data.temp= data.frame()
+data.temp2= data.frame()
+data.ML = data.frame()
+
+data.temp = newTR.df[newTR.df$class %in% c(2,3),]
+data.temp2 =compression_test[compression_test$class %in% c(2,3),]
+
+data.temp$class <- as.numeric(data.temp$class)
+data.temp2$class <- as.numeric(data.temp2$class)
+
+data.ML <- rbind(data.temp,data.temp2) %>%
+  mutate(class = class -2)
+
+
+
+
+
+
+  
+
+```
+
+```{r}
+#High med
+
+train_index <- sample(1:nrow(data.temp), nrow(data.temp)*1.00)
+
+# Full data set
+data_variables <- as.matrix(data.ML[, -last.col])
+data_label <- data.ML[,"class"]
+data_matrix <- xgb.DMatrix(data = data_variables, label = data_label)
+
+# split train data and make xgb.DMatrix
+train_data   <- data_variables[train_index,]
+train_label  <- data_label[train_index]
+train_matrix <- xgb.DMatrix(data = train_data, label = train_label)
+
+# split test data and make xgb.DMatrix
+test_data  <- data_variables[-train_index,]
+test_label <- data_label[-train_index]
+test_matrix <- xgb.DMatrix(data = test_data, label = test_label)
+```
+
+```{r}
+
+best_param = list()
+best_seednumber = 3.1416
+best_logloss = Inf
+best_logloss_index = 0
+
+
+for (i in 1:200){
+  xgb_params <- list(objective = "multi:softprob",
+                   eval_metric = "mlogloss",
+                   num_class = 2,
+                   max_depth = sample(6:15, 1),
+                   eta = runif(1, .01, .3),
+                   gamma = runif(1, 0.0, 0.2), 
+                   subsample = runif(1, .6, .9),
+                   colsample_bytree = runif(1, .5, .8), 
+                   min_child_weight = sample(1:40, 1),
+                   max_delta_step = sample(1:10, 1))
+  nround    <- 100 # number of XGBoost rounds
+  cv.nfold  <- 5
+  seed.number = sample.int(10000, 1)[[1]]
+  set.seed(seed.number)
+  
+  cv_model <- xgb.cv(params = xgb_params,
+                   data = train_matrix, 
+                   nrounds = nround,
+                   nfold = cv.nfold,
+                   verbose = FALSE,
+                   nthread =6,
+                   early_stopping_rounds = 8,
+                   maximize = FALSE,
+                   prediction = TRUE)
+  
+  min_logloss = min(cv_model$evaluation_log$test_mlogloss_mean)
+  min_logloss_index = which.min(cv_model$evaluation_log$test_mlogloss_mean)
+  
+  if (min_logloss < best_logloss) {
+        best_logloss = min_logloss
+        best_logloss_index = min_logloss_index
+        best_seednumber = seed.number
+        best_param = xgb_params
+  }
+}
+```
+
+
+```{r}
+OOF_predictionML <- data.frame(cv_model$pred) %>%
+    mutate(max_prob = max.col(., ties.method = "last"),
+         label = train_label+1)
+for (i in 1:nrow(OOF_predictionML)){
+  if (OOF_predictionML$max_prob[i] > 0){
+    OOF_predictionML$max_prob[i] = OOF_predictionML$max_prob[i]+1
+
+  }
+  if(OOF_predictionML$label[i] > 0){
+    OOF_predictionML$label[i] = OOF_predictionML$label[i]+1
+  }
+}
+
+
+head(OOF_predictionML)
+```
+
+```{r}
+confusionMatrix(factor(OOF_predictionML$max_prob),
+                factor(OOF_predictionML$label),
+                mode = "everything")
+```
+
+```{r}
+nround = 100
+set.seed(5089)
+best_paramML <- list(objective = "multi:softprob",
+                   eval_metric = "mlogloss",
+                   num_class = 2,
+                   max_depth = 7,
+                   eta = 0.149091,
+                   gamma = 0.01465708, 
+                   subsample = 0.8671455,
+                   colsample_bytree = 0.6196066, 
+                   min_child_weight = 1,
+                   max_delta_step = 10)
+
+bst_modelML <- xgb.train(params = best_paramML,
+                       data = train_matrix,
+                       nrounds = nround,
+                       nthread =6)
+
+# Predict hold-out test set
+test_predML <- predict(bst_modelML, newdata = test_matrix)
+test_predictionML <- matrix(test_predML, nrow = 2,
+                          ncol=length(test_predML)/2) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = test_label + 1,
+         max_prob = max.col(., "last"))
+for (i in 1:nrow(test_predictionML)){
+  if (test_predictionML$max_prob[i] > 0){
+    test_predictionML$max_prob[i] = test_predictionML$max_prob[i]+1
+
+  }
+  if(test_predictionML$label[i] > 0){
+    test_predictionML$label[i] = test_predictionML$label[i]+1
+  }
+}
+# confusion matrix of test set
+confusionMatrix(factor(test_predictionML$max_prob),
+                factor(test_predictionML$label),
+                mode = "everything")
+```
+```{r}
+# get the feature real names
+names <-  colnames(data[,-1])
+# compute feature importance matrix
+importance_matrixML = xgb.importance(feature_names = names, model = bst_modelML)
+head(importance_matrixML)
+```
+```{r}
+# plot
+gp = xgb.ggplot.importance(importance_matrixML)
+print(gp) 
+
+```
+
+```{r}
+#edit data 
+data <- data.frame()
+
+newTR.df$class <- as.numeric(newTR.df$class)
+compression_test$class <- as.numeric(compression_test$class)
+data <- rbind(newTR.df, compression_test) %>%
+  mutate(class = class - 1)
+
+# Make split index
+
+train_index <- sample(1:nrow(newTR.df), nrow(newTR.df)*1.00)
+
+# Full data set
+data_variables <- as.matrix(data[, -last.col])
+data_label <- data[,"class"]
+data_matrix <- xgb.DMatrix(data = data_variables, label = data_label)
+
+# split train data and make xgb.DMatrix
+train_data   <- data_variables[train_index,]
+train_label  <- data_label[train_index]
+train_matrix <- xgb.DMatrix(data = train_data, label = train_label)
+
+# split test data and make xgb.DMatrix
+test_data  <- data_variables[-train_index,]
+test_label <- data_label[-train_index]
+test_matrix <- xgb.DMatrix(data = test_data, label = test_label)
+```
+
+
+```{r}
+#### final combined
+testfinal.class = data.frame()
+testfinal.class = compression_test
+
+###############ALL CLASSES################################
+test_pred_ALL <- predict(bst_model, newdata = test_matrix)
+test_prediction_ALL <- matrix(test_pred_ALL, nrow = 3,
+                          ncol=length(test_pred_ALL)/3) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(max_prob = max.col(., "last"))
+# Add data to DF
+testfinal.class$pred.all <- test_prediction_ALL$max_prob
+################HIGH MEDIUM###############################
+test_predHM <- predict(bst_modelHM, newdata = test_matrix)
+test_predictionHM <- matrix(test_predHM, nrow = 2,
+                          ncol=length(test_predHM)/2) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = test_label + 1,
+         max_prob = max.col(., "last"))
+# Add data to DF
+testfinal.class$pred.hm <- test_predictionHM$max_prob
+#################HIGH LOW#################################
+test_predHL <- predict(bst_modelHL, newdata = test_matrix)
+test_predictionHL <- matrix(test_predHL, nrow = 2,
+                          ncol=length(test_predHL)/2) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = test_label + 1,
+         max_prob = max.col(., "last"))
+
+for (i in 1:nrow(test_predictionHL)){
+  if (test_predictionHL$max_prob[i] == 2){
+    test_predictionHL$max_prob[i] = test_predictionHL$max_prob[i]+1
+
+  }
+  if(test_predictionHL$label[i] == 2){
+    test_predictionHL$label[i] = test_predictionHL$label[i]+1
+  }
+}
+# Add data to DF
+testfinal.class$pred.hl <- test_predictionHL$max_prob
+###############MEDIUM LOW#################################
+test_predML <- predict(bst_modelML, newdata = test_matrix)
+test_predictionML <- matrix(test_predML, nrow = 2,
+                          ncol=length(test_predML)/2) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = test_label + 1,
+         max_prob = max.col(., "last"))
+for (i in 1:nrow(test_predictionML)){
+  if (test_predictionML$max_prob[i] > 0){
+    test_predictionML$max_prob[i] = test_predictionML$max_prob[i]+1
+
+  }
+  if(test_predictionML$label[i] > 0){
+    test_predictionML$label[i] = test_predictionML$label[i]+1
+  }
+}
+# Add data to DF
+testfinal.class$pred.ml <- test_predictionML$max_prob 
+
+######################Majority vote####################
+for (i in 1:nrow(testfinal.class)){
+  if (testfinal.class$pred.all[i] == 1){
+      testfinal.class$pred.ml[i] = "NA"
+  }
+  if (testfinal.class$pred.all[i] == 2){
+    testfinal.class$pred.hl[i] = "NA"
+  }
+  if (testfinal.class$pred.all[i] == 3){
+    testfinal.class$pred.hm[i] = "NA"
+  }
+}
+testfinal.class$majority.class <- apply(testfinal.class[,18:21],1,mfv)
+```
+
+```{r}
+# confusion matrix of test set
+confusionMatrix(factor(testfinal.class$majority.class),
+                factor(testfinal.class$class),
+                mode = "everything")
+
+```
+
+
