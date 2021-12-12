@@ -313,7 +313,7 @@ confusionMatrix(factor(test_prediction_ALL$max_prob),
 ```
 ```{r}
 # get the feature real names
-names <-  colnames(data[,-1])
+names <-  colnames(data_variables)
 # compute feature importance matrix
 importance_matrix_ALL = xgb.importance(feature_names = names, model = bst_model)
 head(importance_matrix)
@@ -456,7 +456,7 @@ confusionMatrix(factor(test_predictionHM$max_prob),
 ```
 ```{r}
 # get the feature real names
-names <-  colnames(data[,-1])
+names <-  colnames(data_variables)
 # compute feature importance matrix
 importance_matrixHM = xgb.importance(feature_names = names, model = bst_modelHM)
 head(importance_matrixHM)
@@ -631,7 +631,7 @@ confusionMatrix(factor(test_predictionHL$max_prob),
 ```
 ```{r}
 # get the feature real names
-names <-  colnames(data[,-1])
+names <-  colnames(data_variables)
 # compute feature importance matrix
 importance_matrixHL = xgb.importance(feature_names = names, model = bst_modelHL)
 head(importance_matrixHL)
@@ -801,7 +801,7 @@ confusionMatrix(factor(test_predictionML$max_prob),
 ```
 ```{r}
 # get the feature real names
-names <-  colnames(data[,-1])
+names <-  colnames(data_variables)
 # compute feature importance matrix
 importance_matrixML = xgb.importance(feature_names = names, model = bst_modelML)
 head(importance_matrixML)
