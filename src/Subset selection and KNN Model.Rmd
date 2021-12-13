@@ -1,0 +1,224 @@
+---
+title: "Subset selection and KNN Model"
+author: "Doug Curth"
+date: "12/7/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#library(Matrix)
+library(dplyr)
+#library(resample)
+library(ISLR)
+library(tree)
+library(gbm)
+library(MASS)
+library(class)
+library(e1071) 
+library("leaps")
+
+```
+
+
+# Loading predictors from results of variable creation file
+
+```{r}
+rm(list=ls())
+df = read.csv("C://Users//Doug//Documents//GitHub//csci561-finalproject-team2//data//df.csv")
+
+standardized.df = read.csv("C://Users//Doug//Documents//GitHub//csci561-finalproject-team2//data//standardizeddf.csv")
+
+```
+
+```{r}
+df_test = read.csv("C://Users//Doug//Documents//GitHub//csci561-finalproject-team2//data//df_test.csv")
+```
+
+# Printing Hostogram of all predictors
+```{r}
+for (i in 3:length(df)){
+  hist(df[,i], nclass = 20,  main = names(df)[i])
+  print(skewness(df[,i]))
+}
+
+```
+# Printing histogram of test predictors
+```{r}
+for (i in 3:length(df_test)){
+  hist(df_test[,i], main = names(df_test)[i])
+  print(skewness(df_test[,i]))
+}
+
+```
+
+# Replacing NA's with zero and seperating train and test unscaled.
+```{r}
+df[is.na(df)] <- 0
+compression_train = df[1:710, ]
+compression_test = df[711:980, ]
+
+```
+
+# Replacing NA's with zero and seperating train and test scaled.
+```{r}
+standardized.df[is.na(standardized.df)] <- 0
+compression_train_std = standardized.df[1:710, ]
+compression_test_std = standardized.df[711:980, ]
+
+```
+# Best subset selection unscaled
+###########################
+```{r}
+
+best.subset = regsubsets(df[,2] ~., df[,-c(2:3)], nvmax = 39)
+summary(best.subset)
+
+```
+
+# Summary of results of best subset selection unscaled
+```{r}
+summary(best.subset)$adjr2
+print(1111)
+summary(best.subset)$rsq
+print(1111)
+summary(best.subset)$bic
+print(1111)
+summary(best.subset)$cp
+```
+
+# Plotting results of best subset selection unscaled
+```{r}
+plot(summary(best.subset)$adjr2)
+plot(summary(best.subset)$rsq)
+plot(summary(best.subset)$bic)
+plot(summary(best.subset)$cp)
+```
+
+# Selecting best value for BIC and Cp unscaled
+```{r}
+best.subset.sum = summary(best.subset)
+
+which.min(best.subset.sum$bic)
+which.min(best.subset.sum$cp)
+
+```
+
+```{r}
+# BIC best subset
+coef(best.subset, 13)
+```
+
+```{r}
+#Cp best subset
+coef(best.subset, 23)
+
+```
+
+```{r}
+bic_select = df[ ,colnames(df) %in% c('zeroes', 'med', 'entropy', 'zeros.log', 'min.log', 'max.log', 'q1.log', 'q3.log', 'skew.log', 'kertosis.log', 'aboveMeanCount.log', 'contourCountLSD', 'Varpool_75x25_MaxStat')]
+
+cp_select <- df[, colnames(df) %in% c( "sum", "zeroes", "q3", "entropy", "zeros.log", "norm.log", "min.log", "max.log", "q1.log", "q3.log", "std.log","range.log", "skew.log", "kurtosis.log", "aboveMeanCount.log", "contourCountLSD", "contourLengthLSD","VarPool_75x25_MaxStat", "StdPool_75x25_VarStat", "VarPool_75x25_StdStat", "VarPool_75x25_MeanStat", "iqr", "range")]
+
+```
+
+
+# Scaled best subset selection
+#################################
+# Classification column is different in standardized df
+
+```{r}
+best.subset.std = regsubsets(standardized.df[,14] ~., standardized.df[,-c(14:15)], nvmax = 34)
+summary(best.subset)
+
+```
+
+# Printing summary of scaled subset selection
+```{r}
+summary(best.subset.std)$adjr2
+print(1111)
+summary(best.subset.std)$rsq
+print(1111)
+summary(best.subset.std)$bic
+print(1111)
+summary(best.subset.std)$cp
+```
+
+# Plotting results of scaled subset selection
+```{r}
+plot(summary(best.subset.std)$adjr2)
+plot(summary(best.subset.std)$rsq)
+plot(summary(best.subset.std)$bic)
+plot(summary(best.subset.std)$cp)
+```
+
+# selecting best number of preditors from scaled best subset selection
+```{r}
+# BIC best subset
+which.min(summary(best.subset.std)$bic)
+coef(best.subset.std, 16)
+```
+
+```{r}
+#Cp best subset
+which.min(summary(best.subset.std)$cp)
+coef(best.subset, 21)
+
+```
+
+###############################
+#standardized subset variable df
+################################
+# Creating new data frames for testing
+```{r}
+bic_std_select = df[ ,colnames(df) %in% c("kurtosis", "aboveMeanCount", "entropy", "zeros.log", "norm.log", "min.log", "max.log", "q1.log",
+          "q3.log", "med.log", "std.log", "skew.log", "aboveMeanCount.log", "contourAvgLengthLSD", "VarPool_75x25_StdStat", "range")]
+
+
+cp_std_select <- df[, colnames(df) %in% c( "zeroes", "q3", "std", "entropy", "zeros.log", "norm.log", "min.log","max.log", "q1.log", "q3.log", "skew.log","kurtosis.log", "aboveMeanCount.log", "contourCountLSD", "contourLengthLSD","VarPool_75x25_MaxStat", "StdPool_75x25_VarStat", "VarPool_75x25_StdStat", "VarPool_75x25_MeanStat", "iqr", "range")]
+
+```
+
+# Creating train test split in new scaled subset
+```{r}
+compression_train_bic_std = bic_std_select[1:710, ]
+compression_test_bic_std = bic_std_select[711:980, ]
+
+```
+
+# KNN on standardized subset data
+# Removing NA's
+```{r}
+standardized.df[is.na(standardized.df)] = 0
+```
+
+
+```{r}
+for (i in 1:15){
+  knn.pred = knn(compression_train_bic_std[,-14], compression_test_bic_std[,-14], compression_train_std$classification, k = i)
+  print(table(factor(knn.pred, levels = c("high", "med", "low")), factor(compression_test_std$classification, levels = c("high", "med", "low"))))
+  print(i)
+}
+
+# k = 1 is highest preforming
+```
+
+# Scaling and replacing NA's in validaation set then
+# Creating subset to match best subset from training.
+# Running KNN with k = 1. This was the best hyper parameter fromt testing.
+# Printing results
+```{r}
+
+df_test_scaled = scale(df_test)
+
+df_test_scaled[is.na(df_test_scaled)] = 0
+
+df_test_scaled_bic = df_test_scaled[ ,colnames(df_test_scaled) %in% c("kurtosis", "aboveMeanCount", "entropy", "zeros.log", "norm.log", "min.log", "max.log", "q1.log", "q3.log", "med.log", "std.log", "skew.log", "aboveMeanCount.log", "contourAvgLengthLSD", "VarPool_75x25_StdStat", "range")]
+
+preds <- knn(compression_train_bic_std, df_test_scaled_bic, compression_train_std$classification , k=1)
+
+
+preds
+```
+
+
