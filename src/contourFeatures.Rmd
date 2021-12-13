@@ -1,0 +1,131 @@
+---
+title: "561Project"
+author: "Jose Molina-Galeano"
+date: "November 29, 2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#library(Matrix)
+library(dplyr)
+#library(resample)
+#library(ISLR)
+#library(tree)
+#library(gbm)
+#library(MASS)
+#library(class)
+library(e1071) 
+library(image.ContourDetector)
+library(image.LineSegmentDetector)
+library(image.CannyEdges)
+library(pixmap)
+library(magick)
+library(imager)
+library(purrr)
+library(modeest)
+```
+
+Reading in data:
+
+```{r}
+# Set working directory as needed
+#setwd("C:\\Users\\Kjagi\\OneDrive - Colorado School of Mines\\Fall2021\\MATH561\\Final_Project")
+load("./High/high_train.RData")
+load("./Medium/med_train.RData")
+load("./Low/low_train.RData")
+load("./High/high_validate.RData")
+load("./Medium/med_validate.RData")
+load("./Low/low_validate.RData")
+load("./High/test.RData")
+```
+
+
+Contour Features 
+
+```{r}
+df = data.frame()
+ds_list = list(high_train, med_train, low_train, high_validate, med_validate, low_validate )
+classifications = c("high", "med", "low")
+class_index = rep(c(1, 2, 3), 2)
+for (i in 1:length(ds_list)){
+  l = length(ds_list[[i]]$mat)
+  sum_feature = rep(NA, l)
+  for(j in 1:l){
+    sum_feature[j] = sum(ds_list[[i]]$mat[[j]])
+  }
+  classification = classifications[class_index[i]]
+  
+  # -- Margaret adding in; this is dummy for whether or not the 
+  # dataset is in our validation set.
+
+  
+  df = rbind(df, data.frame("sum"=sum_feature, "classification"=rep(classification, l), "validate"=rep(test,l)))
+}
+df$classification = as.factor(df$classification)
+# Append a new feature, this one is the number of zeroes in each dataset, a measure of the sparsity of the dataset.
+contourCount = c()
+contourLength = c()
+contourAvgLength = c()
+contourCountLSD = c()
+contourLengthLSD = c()
+contourAvgLengthLSD = c()
+
+# Loop through datasets and populate vectors
+for (i in 1:length(ds_list)){
+  numMats = length(ds_list[[i]]$mat)
+  
+  for (j in 1:numMats){
+  
+    mat = ds_list[[i]]$mat[[j]]
+    varname = ds_list[[i]]$var[[j]]
+    file_name = gsub(" ","",paste(varname,'.png'))
+    png(file_name, bg =NA)
+    par(mar = c(0.0, 0.0, 0.0, 0.0))
+    image(mat, col = hcl.colors(1000, "Blue-Red"),axes=FALSE)
+    dev.off()
+    
+    # Features for Contours
+    x <- image_read(path = file_name)
+    mat1 <- image_data(x, channels = "gray")
+    mat1 <- as.integer(mat1, transpose = TRUE)
+    mat1[1:600] = 255
+    mat1 <- drop(mat1)
+    
+    contourlines <- image_contour_detector(mat1, Q=0)
+    
+    contourCount = c(contourCount, contourlines$curves)
+    contourLength = c(contourLength, contourlines$contourpoints)
+    contourAvgLength = c(contourAvgLength, contourlines$contourpoints/contourlines$curves)
+    
+    
+    x <- image_convert(x, format = "pgm", depth =8)
+    f <- tempfile(fileext = ".pgm")
+    image_write(x, path = f, format = "pgm")
+    image <- read.pnm(file = f, cellres = 1)
+    linesegments <- image_line_segment_detector(image@grey * 255)
+    
+    contourCountLSD = c(contourCountLSD, nrow(linesegments$lines))
+    contourLengthLSD = c(contourLengthLSD, sum(linesegments$pixels))
+    contourAvgLengthLSD = c(contourAvgLengthLSD, sum(linesegments$pixels)/nrow(linesegments$lines))
+    
+    file.remove(file_name)
+  }
+}
+```
+
+
+
+```{r}
+# Attaching all of our newly-created features...
+df = cbind(df, data.frame("contourCount"=contourCount))
+df = cbind(df, data.frame("contourLength"=contourLength))
+df = cbind(df, data.frame("contourAvgLength"=contourAvgLength))
+df = cbind(df, data.frame("contourCountLSD"=contourCountLSD))
+df = cbind(df, data.frame("contourLengthLSD"=contourLengthLSD))
+df = cbind(df, data.frame("contourAvgLengthLSD"=contourAvgLengthLSD))
+```
+
+```{r}
+write.csv(df,"contourFeaturesDF.csv", row.names = FALSE)
+```
