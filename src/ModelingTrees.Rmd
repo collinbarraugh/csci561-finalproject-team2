@@ -102,7 +102,7 @@ dim(SCL3)
 set.seed(3.1416)
 
 
-TRAINSET123 = data.frame()
+trainSet.all = data.frame()
 trainCL1 = data.frame()
 trainCL2 = data.frame()
 trainCL3 = data.frame()
@@ -117,7 +117,7 @@ trainCL1<- SCL1[indexesCL1,]
 trainCL2<- SCL2[indexesCL2,]
 trainCL3<- SCL3[indexesCL3,]
 
-TRAINSET123 <- rbind(trainCL1, trainCL2, trainCL3)
+trainSet.all <- rbind(trainCL1, trainCL2, trainCL3)
 
 ```
 
@@ -129,34 +129,31 @@ library(dplyr)
 set.seed(3.1416)
 last.col = ncol(SCL1)
 
-#oversampling class M = 1
-TRAINSET123.2 = data.frame()
-TRAINSET123.3 = data.frame()
+#oversampling Medium class
+trainSet.2 = data.frame()
+trainSet.3 = data.frame()
 
 
 
-for (i in 1:nrow(TRAINSET123)){
-  TRAINSET123$CL2[i] <- ifelse(TRAINSET123$class[i] == 1,1,0)
+for (i in 1:nrow(trainSet.all)){
+  trainSet.all$CL2[i] <- ifelse(trainSet.all$class[i] == 1,1,0)
 }
-TRAINSET123.2 <- TRAINSET123[,-last.col] 
-smote_result22 = SMOTE(TRAINSET123.2[,-last.col],target = TRAINSET123.2$CL2, K = 3, dup_size = 1.0)
+trainSet.2 <- trainSet.all[,-last.col] 
+smote_result22 = SMOTE(trainSet.2[,-last.col],target = trainSet.2$CL2, K = 3, dup_size = 1.0)
 
 oversampled22 = smote_result22$data
-#str(oversampled22)
+
 
 
 BS2 <- filter(oversampled22, oversampled22$class == 1)
-#nrow(BS2)
-#length(BS2)
-#str(BS2)
 
-#oversampling class P = 2  
 
-for (i in 1:nrow(TRAINSET123)){
-  TRAINSET123$CL3[i] <- ifelse(TRAINSET123$class[i] == 2,2,0)
+#oversampling Low class 
+for (i in 1:nrow(trainSet.all)){
+  trainSet.all$CL3[i] <- ifelse(trainSet.all$class[i] == 2,2,0)
 }
-TRAINSET123.3<- TRAINSET123[, -c(last.col,last.col+1)]
-smote_result33 = SMOTE(TRAINSET123.3[,- last.col],target = TRAINSET123.3$CL3, K = 4, dup_size = 3)
+trainSet.3<- trainSet.all[, -c(last.col,last.col+1)]
+smote_result33 = SMOTE(trainSet.3[,- last.col],target = trainSet.3$CL3, K = 3, dup_size = 3)
 
 oversampled33 = smote_result33$data
 BP3 <- filter(oversampled33, oversampled33$class == 2)
@@ -170,6 +167,7 @@ table(newTR.df$class)
 ```
 
 ```{r}
+# change column type
 newTR.df$class <- as.factor(newTR.df$class)
 compression_test$class <- as.factor(compression_test$class)
 compression_train$class <- as.factor(compression_train$class)
@@ -219,7 +217,7 @@ test_label <- data_label[-train_index]
 test_matrix <- xgb.DMatrix(data = test_data, label = test_label)
 ```
 
-
+No need to RUN the gridsearc again unless you want to see the OOF error.
 ```{r}
 
 best_param = list()
@@ -266,7 +264,7 @@ for (i in 1:200){
 }
 ```
 
-
+Out of fold error
 ```{r}
 OOF_prediction_ALL <- data.frame(cv_model$pred) %>%
   mutate(max_prob = max.col(., ties.method = "last"),
@@ -279,6 +277,8 @@ confusionMatrix(factor(OOF_prediction_ALL$max_prob),
                 mode = "everything")
 ```
 
+
+Multiclass model, hyperparameter set by gridsearch
 ```{r}
 nround = 100
 set.seed(7207)
@@ -316,7 +316,7 @@ confusionMatrix(factor(test_prediction_ALL$max_prob),
 names <-  colnames(data_variables)
 # compute feature importance matrix
 importance_matrix_ALL = xgb.importance(feature_names = names, model = bst_model)
-head(importance_matrix)
+head(importance_matrix_ALL)
 ```
 ```{r}
 # plot
@@ -341,7 +341,7 @@ data.HM <- rbind(data.temp,data.temp2) %>%
   mutate(class = class -1)
 
 ```
-
+Include data from medium and high class only 
 ```{r}
 #High med
 
@@ -362,7 +362,7 @@ test_data  <- data_variables[-train_index,]
 test_label <- data_label[-train_index]
 test_matrix <- xgb.DMatrix(data = test_data, label = test_label)
 ```
-
+No need to run this. unless you want to see the out of fold error
 ```{r}
 
 best_param = list()
@@ -408,20 +408,20 @@ for (i in 1:200){
   }
 }
 ```
-
-
+Out of fold error 
 ```{r}
 OOF_prediction_HM <- data.frame(cv_model$pred) %>%
   mutate(max_prob = max.col(., ties.method = "last"),
          label = train_label + 1)
 head(OOF_prediction_HM)
 ```
+confusion matrix out of fold
 ```{r}
 confusionMatrix(factor(OOF_prediction_HM$max_prob),
                 factor(OOF_prediction_HM$label),
                 mode = "everything")
 ```
-
+Run this. hyperparameter set by gridsearch
 ```{r}
 nround = 99
 set.seed(3559)
@@ -493,7 +493,7 @@ for (i in 1:nrow(data.HL)){
   
 
 ```
-
+Only include data for High and low classes 
 ```{r}
 #High low
 
@@ -514,7 +514,7 @@ test_data  <- data_variables[-train_index,]
 test_label <- data_label[-train_index]
 test_matrix <- xgb.DMatrix(data = test_data, label = test_label)
 ```
-
+No need to run this unless you want to see the out of fold error 
 ```{r}
 
 best_param = list()
@@ -560,8 +560,7 @@ for (i in 1:200){
   }
 }
 ```
-
-
+Out of fold error for HL class
 ```{r}
 OOF_predictionHL <- data.frame(cv_model$pred) %>%
     mutate(max_prob = max.col(., ties.method = "last"),
@@ -579,14 +578,13 @@ for (i in 1:nrow(OOF_predictionHL)){
 
 head(OOF_predictionHL)
 ```
-
-
+Confusion Matrix for out of fold samples 
 ```{r}
 confusionMatrix(factor(OOF_predictionHL$max_prob),
                 factor(OOF_predictionHL$label),
                 mode = "everything")
 ```
-
+Run this hyperparameters set by gridsearch
 ```{r}
 nround = 49
 set.seed(1040)
@@ -656,16 +654,8 @@ data.temp2$class <- as.numeric(data.temp2$class)
 
 data.ML <- rbind(data.temp,data.temp2) %>%
   mutate(class = class -2)
-
-
-
-
-
-
-  
-
 ```
-
+Only include data from Medium and low class
 ```{r}
 #High med
 
@@ -686,7 +676,7 @@ test_data  <- data_variables[-train_index,]
 test_label <- data_label[-train_index]
 test_matrix <- xgb.DMatrix(data = test_data, label = test_label)
 ```
-
+No need to run this unless you want to compute out of bag error
 ```{r}
 
 best_param = list()
@@ -732,7 +722,7 @@ for (i in 1:200){
   }
 }
 ```
-
+Out of Fold confusion matrix
 
 ```{r}
 OOF_predictionML <- data.frame(cv_model$pred) %>%
@@ -748,16 +738,15 @@ for (i in 1:nrow(OOF_predictionML)){
   }
 }
 
-
 head(OOF_predictionML)
 ```
-
+Out of Fold confusion matrix
 ```{r}
 confusionMatrix(factor(OOF_predictionML$max_prob),
                 factor(OOF_predictionML$label),
                 mode = "everything")
 ```
-
+Run this hyperparameter set by gridsearch
 ```{r}
 nround = 100
 set.seed(5089)
@@ -812,7 +801,7 @@ gp = xgb.ggplot.importance(importance_matrixML)
 print(gp) 
 
 ```
-
+FInal merge of all models 
 ```{r}
 #edit data 
 data <- data.frame()
@@ -879,7 +868,6 @@ test_predictionHL <- matrix(test_predHL, nrow = 2,
 for (i in 1:nrow(test_predictionHL)){
   if (test_predictionHL$max_prob[i] == 2){
     test_predictionHL$max_prob[i] = test_predictionHL$max_prob[i]+1
-
   }
   if(test_predictionHL$label[i] == 2){
     test_predictionHL$label[i] = test_predictionHL$label[i]+1
@@ -932,8 +920,8 @@ for (i in 1:nrow(testfinal.class)){
       testfinal.class$majority.class[i] = 2
   }
   if ((testfinal.class$majority.class[i]) == "c(1, 3)"){
-      testfinal.class$majority.class[i] = 1
-  }  
+      testfinal.class$majority.class[i] = 1 
+  }
 }
 testfinal.class$majority.class <- as.numeric(testfinal.class$majority.class)
                              
@@ -946,5 +934,21 @@ confusionMatrix(factor(testfinal.class$majority.class),
                 mode = "everything")
 
 ```
+```{r}
+multBiTreePred = data.frame()
+multBiTreePred <- compression_test
+multBiTreePred$MulticlassTreePrediction <- testfinal.class$pred.all
+multBiTreePred$BinTreePredictionHM <- testfinal.class$pred.hm
+multBiTreePred$BinTreePredictionHL <- testfinal.class$pred.hl
+multBiTreePred$BinTreePredictionML <- testfinal.class$pred.ml
+multBiTreePred$TreeFinalPred <- testfinal.class$majority.class
+```
+
+
+```{r}
+write.csv(multBiTreePred,"MultiBiTreePredicions.csv", row.names = FALSE)
+```
+
+
 
 
