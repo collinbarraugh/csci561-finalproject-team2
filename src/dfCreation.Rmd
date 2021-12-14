@@ -1,5 +1,5 @@
 ---
-title: "561 Final Project"
+title: "561 Final Project: Dataframe Creation"
 author: "Team 2"
 date: "11/23/2021"
 output: pdf_document
@@ -7,14 +7,7 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#library(Matrix)
 library(dplyr)
-#library(resample)
-#library(ISLR)
-#library(tree)
-#library(gbm)
-#library(MASS)
-#library(class)
 library(e1071) 
 library(keras)
 library(tensorflow)
@@ -23,6 +16,14 @@ library(entropy)
 #Use this in command line if tensorflow.keras not found error
 #use_condaenv("r-tensorflow")
 ```
+
+This script creates the final dataframe that we use as inputs to our models, using the following steps:
+- Generate the initial dataframe and populate it with simple summary statistic features
+- Add in contour features
+- Add in pooling features
+- Save the unstandardized data to CSVs
+- Create the dataframe of standardized features
+- Save the standardized data to CSVs
 
 Reading in data:
 
@@ -40,35 +41,11 @@ load("./data/test/test.RData")
 ```
 
 ```{r}
-# Set working directory as needed
-#setwd("/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2")
-
+# Set working directory as needed, then load in data
 #load("./data/test/test.RData")
 ```
 
-
-Try plotting:
-
-```{r}
-# Select data and axis labels
-n=170
-selected_dataset = med_train # copy of high_train list of datasets
-l = length(selected_dataset$mat) # number of datasets in high_train
-latitudes = round(as.numeric(colnames(selected_dataset$mat[[n]])))
-longitudes = as.numeric(rownames(selected_dataset$mat[[n]]))
-dataset = selected_dataset$mat[[n]] 
-varname = selected_dataset$var[n]
-
-# Plot
-image(dataset, main=varname, col = hcl.colors(100, "Blue-Red"),
-      axes=FALSE, xlab="Longitude", ylab="Latitude")
-axis(3, at=seq(0,1, length=7), labels=longitudes[seq(1, 288, length.out=7)],
-     lwd=0, pos=-0.2, outer=T)
-axis(2, at=seq(1,0, length=9), labels=latitudes[seq(1, 192, length.out=9)],
-     lwd=0, pos=0)
-```
-
-Let's use Dr. Hammerling's code to initialize our dataframe of [datasets, features]:
+We first use Dr. Hammerling's code to initialize our dataframe of [datasets, features]:
 
 ```{r}
 df = data.frame()
@@ -107,7 +84,7 @@ df = cbind(df, data.frame("zeroes"=z))
 
 # Creating Summary Statistic Features
 
-I'm going to loop through the datasets to create a bunch of new features. I'm sure there's a faster way to do this, but let's keep it simple for now 
+This loop populates separate lists with values for a variety of summary statistic features.
 
 ```{r}
 # Initialize empty vectors to populate with values for each dataset
@@ -171,6 +148,8 @@ for (i in 1:length(ds_list)){
 }
 ```
 
+We then simply cbind these lists onto the dataframe and name the features appropriately.
+
 ```{r}
 # Attaching all of our newly-created features...
 df = cbind(df, data.frame("norm"=norm))
@@ -190,7 +169,7 @@ df = cbind(df, data.frame("entropy"=entropy))
 #df = cbind(df, data.frame("magOrder"=magOrder))
 ```
 
-Below is Doug's code to take the log of certain variables. 
+Below we take the log of certain variables.
 
 ```{r}
 # Zeroes
@@ -290,7 +269,7 @@ df = cbind(df, data.frame("aboveMeanCount.log"=aboveMeanCount.log))
 #print(skewness(aboveMeanCount.log))
 ```
 
-Adding in Jose's contour data. I saved this to a CSV that is in our /data folder. We will do a simple cbind() to attach the two variables.
+We then add in values for Jose's contour variables. This data is saved to CSVs in our /data folder (one CSV for traing/validation, one for test.) We do a simple cbind() to attach the features.
 
 ```{r}
 contour = read_csv("../data/contourData.csv")
@@ -302,15 +281,14 @@ contour = rbind(contour,contourtest)
 df = cbind(df,contour)
 ```
 
-'df' is our (current) finalized dataframe with all our new features.
-
-Adding in Collin's pooling data.
+We next add in values for Collin's pooling variables. This data is saved to CSVs in our /data folder (one CSV for traing/validation, one for test.) We do a simple cbind() to attach the features.
 
 ```{r}
 pooling = read_csv("pooling/train_validation_poolingFeatures.csv")
 poolingtest = read_csv("pooling/testing_poolingFeatures.csv")
 ```
-Cleaning it up a bit so we can attach to 'df'
+
+We need to clean up these CSVs a bit before adding to 'df'.
 
 ```{r}
 pooling = pooling[-c(1:4),-1]
@@ -323,11 +301,24 @@ Add to 'df'
 df = cbind(df,pooling)
 ```
 
+We then split 'df' into train/validation and test sets, and save those separately to CSVs.
+
+```{r}
+df_test = df[which(is.na(df$classification)),]
+df =  df[-which(is.na(df$classification)),]
+```
+
 ```{r}
 # Change file path as needed
 #write.csv(df, "/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2/data/df.csv", row.names = FALSE)
+#write.csv(df_test, "/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2/data/df_test.csv", row.names = FALSE)
 ```
 
+Then, we recombine the data so we can easily create the standardized dataframe.
+
+```{r}
+df = rbind(df,df_test)
+```
 
 Now we standardize our features:
 
@@ -353,6 +344,8 @@ standardized.df$range.log = df$range.log
 standardized.df$skew.log = df$skew.log
 standardized.df$kurtosis.log = df$kurtosis.log
 standardized.df$aboveMeanCount.log = df$aboveMeanCount.log
+standardized.df$contourLength = df$contourLength
+standardized.df$contourCount = df$contourCount
 standardized.df$contourCountLSD = df$contourCountLSD
 standardized.df$contourAvgLength = df$contourAvgLength
 standardized.df$contourLengthLSD = df$contourLengthLSD
@@ -364,10 +357,16 @@ standardized.df$VarPool_75x25_StdStat = df$VarPool_75x25_StdStat
 standardized.df$VarPool_75x25_MeanStat = df$VarPool_75x25_MeanStat
 ```
 
+We then split 'standardizeddf' into train/validation and test sets, and save those separately to CSVs.
+
+```{r}
+sdf_test = standardized.df[which(is.na(standardized.df$classification)),]
+standardized.df =  standardized.df[-which(is.na(standardized.df$classification)),]
+```
+
 ```{r}
 # Change file path as needed
 #write.csv(standardized.df, "/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2/data/standardizeddf.csv", row.names = FALSE)
+#write.csv(sdf_test, "/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2/data/standardizeddf_test.csv", row.names = FALSE)
 ```
 
-
-We can play around with which features, if any, we want to scale. All you need to do is exclude those you don't want scaled in line 174, then add them to the standardized.df as per lines 175 and 176.

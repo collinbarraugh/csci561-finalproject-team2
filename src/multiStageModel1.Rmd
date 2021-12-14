@@ -1,0 +1,146 @@
+---
+title: "561 Final Project: Multi-Stage Model 1"
+author: "Team 2"
+date: "12/5/2021"
+output: pdf_document
+---
+
+This script reads in the standardized dataframe, subsets the features selected via best subset selection, and runs them through the model we refer to as 'Multi-Stage Model 1'.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(gridExtra)
+library(reshape2)
+library(maboost)
+library(randomForest)
+library(e1071)
+library(plotly)
+```
+
+Read in the standardized dataframe as 'df'.
+
+```{r}
+df = read_csv("../data/standardizeddf.csv")
+```
+
+Removing the 'validate' columm.
+
+```{r}
+df = df[,-15]
+```
+
+Subset features to only include those chosen by best subset selection.
+
+```{r}
+# subsetting as per Doug's best subset selection
+df = df[ ,colnames(df) %in% c("kurtosis", "classification","aboveMeanCount", "entropy", "zeros.log", "norm.log", "min.log", "max.log", "q1.log","range",
+          "q3.log", "med.log", "std.log", "skew.log", "aboveMeanCount.log", "contourAvgLengthLSD", "VarPool_75x25_StdStat")]
+```
+
+Split into training/test sets
+
+```{r}
+# Split into training and test sets
+df[is.na(df)] = 0
+df.train = df[1:710,]
+df.test = df[711:980,] 
+```
+
+# Stage 1: Boosted Tree
+
+We run the boosted tree on datasets of all compression levels.
+
+```{r}
+# Fit the boosted model for all 3 compression levels
+compress.boost = maboost(classification~., data=df.train, iter = 500, nu = .02)
+
+boost.test.pred = predict(compress.boost, df.test[,-c(3)]) # remove column for classification
+```
+
+# Stage 2: SVC on low/medium datasets
+
+```{r}
+# 'lm' = 'low/medium' ...
+df.train.lm = df.train[df.train$classification %in% c('low','med'),]
+df.test.lm =  df.test[df.test$classification %in% c('low','med'),]
+df.train.lm$classification = as.factor(df.train.lm$classification)
+```
+
+kurtosis, abovemeancount, linear kernel
+```{r}
+set.seed(1)
+tune.out=tune(svm,as.factor(classification)~aboveMeanCount+kurtosis,data=df.train.lm,kernel="linear",ranges=list(cost=c(0.001, 0.01, 0.1, 1,5,10,100)))
+
+bestmod=tune.out$best.model
+```
+
+The following function applies the Multi-Stage Model 1:
+
+```{r}
+predict_image = function(x){
+  #boost_pred = predict(compress.boost, x[,-1])
+  boost_pred = predict(compress.boost, x[,-3])
+  # If true, we predict the matrix to be of high optimal compression
+  if(boost_pred == "high"){
+      return("high")      
+  } else {
+  
+    # If it's not predicted high, run through the chosen low/medium compression level
+    # model -- in this case, SVC w/ a linear kernel that uses the features: kurtosis, aboveMeanCount
+    x.vals = x %>% dplyr::select(aboveMeanCount, kurtosis)
+    y.val = as.factor(x$classification)
+    
+    return(as.character(predict(bestmod,x.vals)))
+  }
+}
+```
+
+Note: because we're applying this model via a loop, the runtime for this next chunk is fairly long.
+
+```{r}
+preds = c() # populate with predictions from multi-stage model
+for(i in 1:nrow(df.test)){
+  mat = df.test[i,]
+  preds = c(preds, predict_image(mat))
+}
+```
+
+```{r}
+table(preds, df.test$classification)
+```
+
+# Predicting on Test data
+
+```{r}
+df = read_csv("../data/standardizeddf_test.csv")
+```
+
+```{r}
+# Remove classification feature
+df = df[,-15]
+```
+
+```{r}
+# subsetting as per Doug's best subset selection
+df = df[ ,colnames(df) %in% c("kurtosis", "classification","aboveMeanCount", "entropy", "zeros.log", "norm.log", "min.log", "max.log", "q1.log","range",
+          "q3.log", "med.log", "std.log", "skew.log", "aboveMeanCount.log", "contourAvgLengthLSD", "VarPool_75x25_StdStat")]
+```
+
+```{r}
+df[is.na(df)] <- 0
+```
+
+```{r}
+preds = c() # populate with predictions from multi-stage model
+for(i in 1:nrow(df)){
+  mat = df[i,]
+  preds = c(preds, predict_image(mat))
+}
+```
+
+```{r}
+write.csv(preds, "/Users/margaretsabelhaus/Documents/GitHub/csci561-finalproject-team2/data/multiStageModel1_preds.csv", row.names = FALSE)
+```

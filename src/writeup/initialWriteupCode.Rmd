@@ -1,0 +1,258 @@
+---
+title: "DSCI561 - Final Project - Figures for Paper"
+author: "Team 2"
+date: "12/2/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(gridExtra)
+library(reshape2)
+```
+
+```{r}
+df = read_csv("../data/df.csv")
+```
+
+
+Creating boxplots of our initial variables.
+
+```{r}
+dfTrain = df[df$validate==0,]
+```
+
+```{r, fig.width=10, fig.height=3, echo=FALSE}
+pSum = ggplot(dfTrain, aes(classification, sum, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("sum") + theme(legend.position = "none")  + theme(text = element_text(size = 20))
+
+pZeroes = ggplot(dfTrain, aes(classification, zeroes, fill=factor(classification))) +  geom_boxplot()+ ggtitle("zeroes") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pNorm = ggplot(dfTrain, aes(classification, norm, fill=factor(classification))) +  geom_boxplot() + ggtitle("norm")  + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+plot = grid.arrange(pSum, pZeroes, pNorm, nrow=1)
+ggsave("../images/boxplot1.png", plot)
+```
+
+```{r, fig.width=10, fig.height=3, echo=FALSE}
+pmin = ggplot(dfTrain, aes(classification, min, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("min") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pmax = ggplot(dfTrain, aes(classification, max, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("max") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pq1 = ggplot(dfTrain, aes(classification, q1, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("q1") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+
+plot = grid.arrange(pmin,pmax,pq1, nrow=1)
+ggsave("../images/boxplot2.png", plot)
+```
+
+```{r, fig.width=10, fig.height=3, echo=FALSE}
+pq3 = ggplot(dfTrain, aes(classification, q3, fill=factor(classification))) +  geom_boxplot()+ ggtitle("q3") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+piqr = ggplot(dfTrain, aes(classification, iqr, fill=factor(classification))) +  geom_boxplot() + ggtitle("iqr")  + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pmean = ggplot(dfTrain, aes(classification, mean, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("mean") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+plot = grid.arrange(pq3,piqr,pmean, nrow=1)
+ggsave("../images/boxplot3.png", plot)
+```
+
+```{r, fig.width=10, fig.height=3, echo=FALSE}
+pmed = ggplot(dfTrain, aes(classification, med, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("median") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pstd = ggplot(dfTrain, aes(classification, std, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("std") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+prange = ggplot(dfTrain, aes(classification, range, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("range") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+
+plot = grid.arrange(pmed,pstd,prange, nrow=1)
+ggsave("../images/boxplot4.png", plot)
+```
+
+```{r, fig.width=10, fig.height=3, echo=FALSE}
+pskew = ggplot(dfTrain, aes(classification, skew, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("skew") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pkurtosis = ggplot(dfTrain, aes(classification, kurtosis, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("kurtosis") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+
+paboveMeanCount = ggplot(dfTrain, aes(classification, aboveMeanCount, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("aboveMeanCount") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+plot = grid.arrange(pskew,pkurtosis,paboveMeanCount, nrow=1)
+ggsave("../images/boxplot5.png", plot)
+```
+
+```{r, fig.width=10, fig.height=3, echo=FALSE}
+pentropy = ggplot(dfTrain, aes(classification, entropy, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("entropy") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pcontourCount = ggplot(dfTrain, aes(classification, contourCount, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("contourCount") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pcontourLength = ggplot(dfTrain, aes(classification, contourLength, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("contourLength") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+plot = grid.arrange(pentropy, pcontourCount, pcontourLength, nrow=1)
+ggsave("../images/boxplot6.png", plot)
+```
+
+```{r, fig.width=10, fig.height=3, echo=FALSE}
+
+pcontourAvgLength = ggplot(dfTrain, aes(classification, contourAvgLength, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("contourAvgLength") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pcontourCountLSD = ggplot(dfTrain, aes(classification, contourCountLSD, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("contourCountLSD") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pcontourLengthLSD = ggplot(dfTrain, aes(classification, contourLengthLSD, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("contourLengthLSD") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+plot = grid.arrange(pcontourAvgLength, pcontourCountLSD, pcontourLengthLSD, nrow=1)
+ggsave("../images/boxplot7.png", plot)
+```
+
+```{r, fig.width=10, fig.height=3, echo=FALSE}
+pcontourAvgLengthLSD = ggplot(dfTrain, aes(classification, contourAvgLengthLSD, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("contourAvgLengthLSD") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pVarPool_75x25_MaxStat = ggplot(dfTrain, aes(classification, VarPool_75x25_MaxStat, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("VarPool_75x25_MaxStat") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pStdPool_75x25_VarStat = ggplot(dfTrain, aes(classification, StdPool_75x25_VarStat, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("StdPool_75x25_VarStat") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+plot = grid.arrange(pcontourAvgLengthLSD, pVarPool_75x25_MaxStat, pStdPool_75x25_VarStat, nrow=1)
+ggsave("../images/boxplot8.png", plot)
+```
+
+```{r, fig.width=10, fig.height=3, echo=FALSE}
+pStdPool_75x25_StdStat = ggplot(dfTrain, aes(classification, StdPool_75x25_StdStat, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("StdPool_75x25_StdStat") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pVarPool_75x25_StdStat = ggplot(dfTrain, aes(classification, VarPool_75x25_StdStat, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("VarPool_75x25_StdStat") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pVarPool_75x25_MeanStat = ggplot(dfTrain, aes(classification, VarPool_75x25_MeanStat, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("VarPool_75x25_MeanStat") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+plot = grid.arrange(pStdPool_75x25_StdStat, pVarPool_75x25_StdStat, pVarPool_75x25_MeanStat, nrow=1)
+ggsave("../images/boxplot9.png", plot)
+```
+
+Making a 2x3 boxplot graphic for the paper
+
+```{r, fig.width=10, fig.height=6, echo=FALSE}
+pSum = ggplot(dfTrain, aes(classification, sum, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("sum") + theme(legend.position = "none")  + theme(text = element_text(size = 20))
+
+pmed = ggplot(dfTrain, aes(classification, med, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("median") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+piqr = ggplot(dfTrain, aes(classification, iqr, fill=factor(classification))) +  geom_boxplot() + ggtitle("iqr")  + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+paboveMeanCount = ggplot(dfTrain, aes(classification, aboveMeanCount, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("aboveMeanCount") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pcontourAvgLength = ggplot(dfTrain, aes(classification, contourAvgLength, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("contourAvgLength") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+pVarPool_75x25_StdStat = ggplot(dfTrain, aes(classification, VarPool_75x25_StdStat, fill=factor(classification))) +   geom_boxplot() + guides(fill=guide_legend(title="Compression Level")) + ggtitle("VarPool_75x25_StdStat") + theme(legend.position = "none") + theme(text = element_text(size = 20))
+
+plot = grid.arrange(pSum, pmed, piqr, paboveMeanCount, pcontourAvgLength, pVarPool_75x25_StdStat, nrow=2)
+ggsave("../images/mainBoxplotImage.png", plot)
+```
+
+```{r}
+s.df = read_csv("../data/standardizeddf.csv")
+```
+
+Comparing medium and high compression means:
+
+```{r}
+print(paste("sum:", t.test(s.df$sum[s.df$classification=='high'], s.df$sum[s.df$classification=='med'])$p.value))
+
+print(paste("norm:", t.test(s.df$norm[s.df$classification=='high'], s.df$norm[s.df$classification=='med'])$p.value))
+
+print(paste("q1:", t.test(s.df$q1[s.df$classification=='high'], s.df$q1[s.df$classification=='med'])$p.value))
+
+print(paste("q3:", t.test(s.df$q3[s.df$classification=='high'], s.df$q3[s.df$classification=='med'])$p.value))
+
+print(paste("iqr:", t.test(s.df$iqr[s.df$classification=='high'], s.df$iqr[s.df$classification=='med'])$p.value))
+
+print(paste("min:", t.test(s.df$min[s.df$classification=='high'], s.df$min[s.df$classification=='med'])$p.value))
+
+print(paste("max:", t.test(s.df$max[s.df$classification=='high'], s.df$max[s.df$classification=='med'])$p.value))
+
+print(paste("std:", t.test(s.df$std[s.df$classification=='high'], s.df$std[s.df$classification=='med'])$p.value))
+
+print(paste("mean:", t.test(s.df$mean[s.df$classification=='high'], s.df$mean[s.df$classification=='med'])$p.value))
+
+print(paste("med:", t.test(s.df$med[s.df$classification=='high'], s.df$med[s.df$classification=='med'])$p.value))
+
+print(paste("range:", t.test(s.df$range[s.df$classification=='high'], s.df$range[s.df$classification=='med'])$p.value))
+```
+
+Comparing medium and high compression means:
+
+```{r}
+print(paste("zeroes:", t.test(s.df$zeroes[s.df$classification=='high'], s.df$zeroes[s.df$classification=='med'])$p.value))
+```
+
+```{r}
+print(paste("zeroes, low/medium:", t.test(s.df$zeroes[s.df$classification=='low'], s.df$zeroes[s.df$classification=='med'])$p.value))
+
+print(paste("aboveMeanCount, low/medium:", t.test(s.df$aboveMeanCount[s.df$classification=='low'], s.df$aboveMeanCount[s.df$classification=='med'])$p.value))
+
+print(paste("skew, low/medium:", t.test(s.df$skew[s.df$classification=='low'], s.df$skew[s.df$classification=='med'])$p.value))
+
+print(paste("kurtosis, low/medium:", t.test(s.df$kurtosis[s.df$classification=='low'], s.df$kurtosis[s.df$classification=='med'])$p.value))
+
+print(paste("entropy, low/medium:", t.test(s.df$entropy[s.df$classification=='low'], s.df$entropy[s.df$classification=='med'])$p.value))
+
+print(paste("contourCount, low/medium:", t.test(s.df$contourCount[s.df$classification=='low'], s.df$contourCount[s.df$classification=='med'])$p.value))
+
+print(paste("contourLength, low/medium:", t.test(s.df$contourLength[s.df$classification=='low'], s.df$contourLength[s.df$classification=='med'])$p.value))
+
+print(paste("contourAvgLength, low/medium:", t.test(s.df$contourAvgLength[s.df$classification=='low'], s.df$contourAvgLength[s.df$classification=='med'])$p.value))
+
+print(paste("contourCountLSD, low/medium:", t.test(s.df$contourCountLSD[s.df$classification=='low'], s.df$contourCountLSD[s.df$classification=='med'])$p.value))
+
+print(paste("contourLengthLSD, low/medium:", t.test(s.df$contourLengthLSD[s.df$classification=='low'], s.df$contourLengthLSD[s.df$classification=='med'])$p.value))
+
+print(paste("contourAvgLengthLSD, low/medium:", t.test(s.df$contourAvgLengthLSD[s.df$classification=='low'], s.df$contourAvgLengthLSD[s.df$classification=='med'])$p.value))
+
+print(paste("VarPool_75x25_MaxStat, low/medium:", t.test(s.df$VarPool_75x25_MaxStat[s.df$classification=='low'], s.df$VarPool_75x25_MaxStat[s.df$classification=='med'])$p.value))
+
+print(paste("StdPool_75x25_VarStat, low/medium:", t.test(s.df$StdPool_75x25_VarStat[s.df$classification=='low'], s.df$StdPool_75x25_VarStat[s.df$classification=='med'])$p.value))
+
+print(paste("StdPool_75x25_StdStat, low/medium:", t.test(s.df$StdPool_75x25_StdStat[s.df$classification=='low'], s.df$StdPool_75x25_StdStat[s.df$classification=='med'])$p.value))
+
+print(paste("VarPool_75x25_StdStat, low/medium:", t.test(s.df$VarPool_75x25_StdStat[s.df$classification=='low'], s.df$VarPool_75x25_StdStat[s.df$classification=='med'])$p.value))
+
+print(paste("VarPool_75x25_MeanStat, low/medium:", t.test(s.df$VarPool_75x25_MeanStat[s.df$classification=='low'], s.df$VarPool_75x25_MeanStat[s.df$classification=='med'])$p.value))
+```
+
+Correlation
+
+```{r}
+c.df = df %>% dplyr::select(sum,norm,min,max,q1,q3,iqr,mean,med,std,range,skew,kurtosis,zeroes,aboveMeanCount,entropy)
+cormat <- round(cor(c.df),2)
+
+melted_cormat <- melt(cormat)
+
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+ coord_fixed()
+```
+
+```{r}
+c.contour.df = df %>% dplyr::select(contourCountLSD,contourAvgLength,contourLengthLSD,contourAvgLengthLSD)
+cor(c.contour.df)
+cormat <- round(cor(c.contour.df),2)
+
+melted_cormat <- melt(cormat)
+
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+ coord_fixed()
+```
+
+
+
