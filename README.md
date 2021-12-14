@@ -17,6 +17,11 @@ This is a shared project space for the Statistical Learning II (CSCI561) course 
 
 ## Guide to Code
 
+/src/pooling
+- Uncomment line 112 and run normalize.Rmd to normalize the cimate images (left adjusted to 0 and divided by max ixel value)
+- Run pooling_stats.ipynb to generate appriximately 30 pooling features for each dataset of climate images
+- testing_poolingFeatures.csv and train_validation_poolingFeatures contain the best 5 pooling features generated from the python script for each dataset
+
 /src/dfCreation.Rmd: 
 - Generates the initial dataframe and populates it with simple summary statistic features
 - Adds in contour features
@@ -34,5 +39,7 @@ This is a shared project space for the Statistical Learning II (CSCI561) course 
 /src/ModelingTreesModel2.Rmd
 -Runs what we refer to as the Multi-Stage Model 2
 
+/writeup
+- Contains files describing the objective for the class project. 
 
 
