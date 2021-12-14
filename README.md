@@ -28,7 +28,8 @@ This is a shared project space for the Statistical Learning II (CSCI561) course 
 /src/multiStageModel1.Rmd
 - Runs what we refer to as the Multi-Stage Model 1
 
-
+/src/Subset selection and KNN Model.Rmd
+- Runs subset selection and KNN model once variables have been created.
 
 
 
