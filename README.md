@@ -7,7 +7,7 @@ This is a shared project space for the Statistical Learning II (CSCI561) course 
 - Collin Barraugh (email: cbarraugh@mines.edu, mobile: 8582134014)
 - Margaret Sabelhaus (email: msabelhaus@mines.edu, mobile: 3015252903)
 - Doug Curth (email: Dcurth@mines.edu: , mobile: 5027515383 )
-- Jose Molina (email: , mobile: )
+- Jose Molina (email: jmolinagal@gmail.com, mobile:7203083638 )
 
 ## Collaboration Links
 
